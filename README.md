@@ -1,56 +1,67 @@
-# Welcome to your Expo app 👋
+# Case Files — Clean Expo Router Scaffold
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This project uses Expo Router with the supported top-level `src/app` routing directory.
 
-## Get started
+## Rule
+`src/app` is for routes only. Put actual UI in `src/screens`, reusable UI in `src/components`, backend/native integrations in `src/services`, helpers/types in `src/utils`, and static resources in `src/assets`.
 
-1. Install dependencies
+## Structure
 
-   ```bash
-   npm install
-   ```
+PoliceApp/
+- app.json
+- package.json
+- tsconfig.json
+- README.md
+- .env.example
+- src/
+  - app/                 # Expo Router routes ONLY
+    - _layout.tsx
+    - index.tsx
+    - case/[caseId]/
+      - index.tsx
+      - audio.tsx
+      - files.tsx
+      - templates.tsx
+      - document/[fileId].tsx
+  - screens/
+  - components/
+  - services/
+  - utils/
+  - assets/fonts/NudiE05.ttf
+  - assets/images/
 
-2. Start the app
+## Routes
 
-   ```bash
-   npx expo start
-   ```
+/ — Home
+/case/:caseId — Case
+/case/:caseId/audio — Audio + instructions
+/case/:caseId/files — Generated files
+/case/:caseId/templates — Template selection
+/case/:caseId/document/:fileId — Markdown document
 
-In the output, you'll find options to open the app in a
+## Entry
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+`package.json` uses `expo-router/entry`. There is intentionally no App.tsx, custom index.js, AppNavigator, or React Navigation route types.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Install / run
 
 ```bash
-npm run reset-project
+npm install
+npx expo start --clear
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Nudi E05
 
-### Other setup steps
+Put the licensed font at `src/assets/fonts/NudiE05.ttf`.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Navigation
 
-## Learn more
+Use Expo Router:
 
-To learn more about developing your project with Expo, look at the following resources:
+```tsx
+import { router, useLocalSearchParams } from "expo-router";
+router.push(`/case/${caseId}/audio`);
+router.back();
+const { caseId } = useLocalSearchParams<{caseId: string}>();
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
