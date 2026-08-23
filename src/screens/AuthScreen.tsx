@@ -1,9 +1,8 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../navigation/types";
-import { LoginForm } from "../components/auth/LoginForm";
+import { LoginScreen } from "./LoginScreen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Auth">;
 
@@ -13,15 +12,9 @@ export function AuthScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <LoginForm onLoginSuccess={handleLoginSuccess} />
-    </View>
+    <LoginScreen
+      navigation={navigation}
+      onLoginSuccess={handleLoginSuccess}
+    />
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B0D10",
-  },
-});
+}
