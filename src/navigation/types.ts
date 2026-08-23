@@ -14,4 +14,10 @@ export type RootStackParamList = {
   DocumentGeneration: {
     caseId: string;
   };
+
+  MarkdownDocxTest: undefined;
+
+  MarkdownPreview: undefined;
+
+  NudiFontTest: undefined;
 };

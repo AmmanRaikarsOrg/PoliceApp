@@ -9,6 +9,9 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { ComplaintRegistrationScreen } from "../screens/ComplaintRegistrationScreen";
 import { CasePageScreen } from "../screens/CasePageScreen";
 import { DocumentGenerationScreen } from "../screens/DocumentGenerationScreen";
+import { MarkdownDocxTestScreen } from "../screens/MarkdownDocxTestScreen";
+import { MarkdownPreviewScreen } from "../screens/MarkdownPreviewScreen";
+import { NudiFontTestScreen } from '../screens/NudiFontTestScreen'
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -68,6 +71,31 @@ export function AppNavigator() {
           title: "Generate Document",
         }}
       />
+
+      <Stack.Screen
+        name="MarkdownDocxTest"
+        component={MarkdownDocxTestScreen}
+        options={{
+          title: "DOCX Test",
+        }}
+      />
+
+      <Stack.Screen
+        name="MarkdownPreview"
+        component={MarkdownPreviewScreen}
+        options={{
+          title: "Preview",
+        }}
+      />
+
+      <Stack.Screen
+        name="NudiFontTest"
+        component={NudiFontTestScreen}
+        options={{
+          title: "Font Test",
+        }}
+      />
+      
     </Stack.Navigator>
   );
 }

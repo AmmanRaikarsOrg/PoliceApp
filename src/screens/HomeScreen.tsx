@@ -63,6 +63,69 @@ export function HomeScreen({ navigation }: Props) {
         onClose={() => setCreateCaseVisible(false)}
         onCaseCreated={handleCaseCreated}
       />
+      <Pressable
+        style={{
+          marginTop: 20,
+          padding: 15,
+          backgroundColor: "#2B313A",
+          borderRadius: 12,
+        }}
+        onPress={() => {
+          navigation.navigate("MarkdownDocxTest");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Markdown → DOCX
+        </Text>
+      </Pressable>
+      <Pressable
+        style={{
+          marginTop: 10,
+          padding: 15,
+          backgroundColor: "#333a2b",
+          borderRadius: 15,
+        }}
+        onPress={() => {
+          navigation.navigate("MarkdownPreview");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Markdown Preview
+        </Text>
+      </Pressable>
+      <Pressable
+        style={{
+          marginTop: 10,
+          padding: 15,
+          backgroundColor: "#333a2b",
+          borderRadius: 15,
+        }}
+        onPress={() => {
+          navigation.navigate("NudiFontTest");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Font Preview
+        </Text>
+      </Pressable>
     </View>
   );
 }
