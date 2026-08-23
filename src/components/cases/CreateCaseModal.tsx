@@ -1,0 +1,117 @@
+import React, { useState } from "react";
+import {
+  Modal as RNModal,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+import { Input } from "../common/Input";
+import { Button } from "../common/Button";
+
+type Props = {
+  visible: boolean;
+  onClose: () => void;
+  onCaseCreated: (caseId: string) => void;
+};
+
+export function CreateCaseModal({
+  visible,
+  onClose,
+  onCaseCreated,
+}: Props) {
+  const [caseName, setCaseName] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState("");
+  const [date, setDate] = useState("");
+
+  const handleCreate = () => {
+    if (!caseName.trim()) {
+      return;
+    }
+
+    // Backend case creation will go here.
+    const caseId = "temporary-case-id";
+
+    onCaseCreated(caseId);
+  };
+
+  return (
+    <RNModal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.modal}>
+          <Text style={styles.title}>
+            Make New Case
+          </Text>
+
+          <Input
+            label="Case Name *"
+            value={caseName}
+            onChangeText={setCaseName}
+            placeholder="Case name"
+          />
+
+          <Input
+            label="Case Description"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Description"
+            multiline
+          />
+
+          <Input
+            label="Case Type"
+            value={type}
+            onChangeText={setType}
+            placeholder="Case type"
+          />
+
+          <Input
+            label="Date"
+            value={date}
+            onChangeText={setDate}
+            placeholder="Date"
+          />
+
+          <Button
+            title="Create Case"
+            onPress={handleCreate}
+          />
+
+          <Button
+            title="Cancel"
+            onPress={onClose}
+            variant="secondary"
+          />
+        </View>
+      </View>
+    </RNModal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+
+  modal: {
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: "#15181D",
+    gap: 14,
+  },
+
+  title: {
+    color: "#F4F5F7",
+    fontSize: 24,
+    fontWeight: "800",
+  },
+});

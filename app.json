@@ -7,7 +7,6 @@
     "scheme": "policeapp",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      "expo-router",
       [
         "expo-font",
         {
@@ -21,16 +20,14 @@
         {
           "microphonePermission": "Allow FIRSys to access your microphone."
         }
-      ]
+      ],
+      "expo-asset"
     ],
-    "experiments":{
-      "typedRoutes":true
-    },
-     "android": {
-      "package": "com.example.casefiles"
+    "android": {
+      "package": "com.example.policeapp"
     },
     "ios": {
-      "bundleIdentifier": "com.example.casefiles"
+      "bundleIdentifier": "com.example.policeapp"
     }
   }
 }

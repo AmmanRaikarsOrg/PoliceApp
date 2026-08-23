@@ -1,1 +1,5 @@
-// Pure formatting helpers belong here.
+export function formatDate(
+  date: string
+) {
+  return new Date(date).toLocaleDateString();
+}
