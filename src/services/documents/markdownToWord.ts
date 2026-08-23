@@ -9,8 +9,8 @@ import {
 export async function markdownToDocx(
   markdown: string
 ): Promise<Uint8Array> {
-  const document =
+  const parsed =
     parseMarkdown(markdown);
 
-  return generateDocx(document);
+  return generateDocx(parsed);
 }

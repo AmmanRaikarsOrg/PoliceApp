@@ -57,16 +57,13 @@ export function HomeScreen({ navigation }: Props) {
       >
         <Text style={styles.newCaseText}>Make New Case</Text>
       </Pressable>
-
-      <CreateCaseModal
-        visible={createCaseVisible}
-        onClose={() => setCreateCaseVisible(false)}
-        onCaseCreated={handleCaseCreated}
-      />
       <Pressable
         style={{
-          marginTop: 20,
+          marginTop: 10,
           padding: 15,
+          position: "absolute",
+          top: 180,
+          left: 24,
           backgroundColor: "#2B313A",
           borderRadius: 12,
         }}
@@ -88,6 +85,9 @@ export function HomeScreen({ navigation }: Props) {
         style={{
           marginTop: 10,
           padding: 15,
+          position: "absolute",
+          top: 250,
+          left: 24,
           backgroundColor: "#333a2b",
           borderRadius: 15,
         }}
@@ -109,7 +109,10 @@ export function HomeScreen({ navigation }: Props) {
         style={{
           marginTop: 10,
           padding: 15,
-          backgroundColor: "#333a2b",
+          position: "absolute",
+          top: 330,
+          left: 24,
+          backgroundColor: "#2b3a37",
           borderRadius: 15,
         }}
         onPress={() => {
@@ -126,6 +129,12 @@ export function HomeScreen({ navigation }: Props) {
           Test Font Preview
         </Text>
       </Pressable>
+
+      <CreateCaseModal
+        visible={createCaseVisible}
+        onClose={() => setCreateCaseVisible(false)}
+        onCaseCreated={handleCaseCreated}
+      />
     </View>
   );
 }

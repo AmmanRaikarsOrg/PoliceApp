@@ -35,7 +35,7 @@ export async function createDocxFile(
   return file.uri;
 }
 
-export async function createAndShareDocx(
+export async function shareDocx(
   markdown: string,
   filename = "case-document.docx"
 ) {
@@ -45,18 +45,19 @@ export async function createAndShareDocx(
       filename
     );
 
-  const sharingAvailable =
+  const available =
     await Sharing.isAvailableAsync();
 
-  if (!sharingAvailable) {
+  if (!available) {
     throw new Error(
-      "File sharing is not available."
+      "Sharing is not available on this device."
     );
   }
 
   await Sharing.shareAsync(uri, {
     mimeType: DOCX_MIME,
-    dialogTitle: "Share Word Document",
+    dialogTitle:
+      "Share Word Document",
   });
 
   return uri;

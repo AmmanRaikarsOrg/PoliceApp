@@ -12,7 +12,7 @@ import {
 import { Button } from "../components/common/Button";
 
 import {
-  createAndShareDocx,
+  shareDocx,
 } from "../services/documents/docxFileService";
 
 export function MarkdownDocxTestScreen() {
@@ -62,7 +62,7 @@ export function MarkdownDocxTestScreen() {
         ¥ÀAZÀ£ÁªÉÄ mÉÊ¥À ªÀiÁrzÀªÀgÀ ¸À»:
         `;
       const uri =
-        await createAndShareDocx(
+        await shareDocx(
           TEST_MARKDOWN,
           "case-file-test.docx"
         );

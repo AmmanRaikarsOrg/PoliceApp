@@ -6,16 +6,43 @@ import {
   View,
 } from "react-native";
 
-import { fonts } from "../../theme/fonts";
-
-type Props = {
+type MarkdownViewerProps = {
   markdown: string;
 };
 
+type InlinePart =
+  | {
+      type: "text";
+      text: string;
+    }
+  | {
+      type: "bold";
+      text: string;
+    }
+  | {
+      type: "italic";
+      text: string;
+    }
+  | {
+      type: "strike";
+      text: string;
+    }
+  | {
+      type: "code";
+      text: string;
+    }
+  | {
+      type: "link";
+      text: string;
+      url: string;
+    };
+
+const FONT = "Nudi 05 e";
+
 export function MarkdownViewer({
   markdown,
-}: Props) {
-  const blocks = markdown
+}: MarkdownViewerProps) {
+  const lines = markdown
     .replace(/\r\n/g, "\n")
     .split("\n");
 
@@ -23,105 +50,605 @@ export function MarkdownViewer({
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator
     >
-      {blocks.map((line, index) => (
-        <MarkdownLine
-          key={`${index}-${line}`}
-          line={line}
-        />
-      ))}
+      {renderMarkdown(lines)}
     </ScrollView>
   );
 }
 
-type LineProps = {
-  line: string;
-};
+function renderMarkdown(lines: string[]) {
+  const elements: React.ReactNode[] = [];
 
-function MarkdownLine({ line }: LineProps) {
-  const trimmed = line.trim();
+  let index = 0;
 
-  if (!trimmed) {
-    return <View style={styles.spacer} />;
-  }
+  while (index < lines.length) {
+    const rawLine = lines[index];
+    const line = rawLine.trim();
 
-  // Markdown heading
-  const headingMatch =
-    trimmed.match(/^(#{1,6})\s+(.+)$/);
+    // Empty line
+    if (!line) {
+      elements.push(
+        <View
+          key={`space-${index}`}
+          style={styles.paragraphSpacing}
+        />
+      );
 
-  if (headingMatch) {
-    const level = headingMatch[1].length;
+      index++;
+      continue;
+    }
 
-    return (
+    // Horizontal rule
+    if (isHorizontalRule(line)) {
+      elements.push(
+        <View
+          key={`rule-${index}`}
+          style={styles.horizontalRule}
+        />
+      );
+
+      index++;
+      continue;
+    }
+
+    // Table
+    if (
+      index + 1 < lines.length &&
+      line.includes("|") &&
+      isTableSeparator(lines[index + 1])
+    ) {
+      const table = parseTable(lines, index);
+
+      elements.push(
+        <MarkdownTable
+          key={`table-${index}`}
+          headers={table.headers}
+          rows={table.rows}
+        />
+      );
+
+      index = table.nextIndex;
+      continue;
+    }
+
+    // Heading
+    const heading = line.match(
+      /^(#{1,6})\s+(.+)$/
+    );
+
+    if (heading) {
+      const level = heading[1].length;
+
+      elements.push(
+        <Text
+          key={`heading-${index}`}
+          style={[
+            styles.heading,
+            getHeadingStyle(level),
+          ]}
+        >
+          {renderInline(heading[2])}
+        </Text>
+      );
+
+      index++;
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith(">")) {
+      const quoteLines: string[] = [];
+
+      while (
+        index < lines.length &&
+        lines[index].trim().startsWith(">")
+      ) {
+        quoteLines.push(
+          lines[index]
+            .trim()
+            .replace(/^>\s?/, "")
+        );
+
+        index++;
+      }
+
+      elements.push(
+        <View
+          key={`quote-${index}`}
+          style={styles.quoteContainer}
+        >
+          <Text style={styles.quoteText}>
+            {renderInline(
+              quoteLines.join(" ")
+            )}
+          </Text>
+        </View>
+      );
+
+      continue;
+    }
+
+    // Numbered list
+    if (/^\d+[.)]\s+/.test(line)) {
+      const items: string[] = [];
+
+      while (
+        index < lines.length &&
+        /^\d+[.)]\s+/.test(
+          lines[index].trim()
+        )
+      ) {
+        items.push(
+          lines[index]
+            .trim()
+            .replace(/^\d+[.)]\s+/, "")
+        );
+
+        index++;
+      }
+
+      elements.push(
+        <View
+          key={`ordered-${index}`}
+          style={styles.listContainer}
+        >
+          {items.map((item, itemIndex) => (
+            <View
+              key={`${itemIndex}-${item}`}
+              style={styles.listRow}
+            >
+              <Text style={styles.number}>
+                {itemIndex + 1}.
+              </Text>
+
+              <Text style={styles.bodyText}>
+                {renderInline(item)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      );
+
+      continue;
+    }
+
+    // Bullet list
+    if (/^[-*+]\s+/.test(line)) {
+      const items: string[] = [];
+
+      while (
+        index < lines.length &&
+        /^[-*+]\s+/.test(
+          lines[index].trim()
+        )
+      ) {
+        items.push(
+          lines[index]
+            .trim()
+            .replace(/^[-*+]\s+/, "")
+        );
+
+        index++;
+      }
+
+      elements.push(
+        <View
+          key={`bullet-${index}`}
+          style={styles.listContainer}
+        >
+          {items.map((item, itemIndex) => (
+            <View
+              key={`${itemIndex}-${item}`}
+              style={styles.listRow}
+            >
+              <Text style={styles.bullet}>
+                •
+              </Text>
+
+              <Text style={styles.bodyText}>
+                {renderInline(item)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      );
+
+      continue;
+    }
+
+    // Normal paragraph
+    const paragraphLines = [line];
+
+    index++;
+
+    while (index < lines.length) {
+      const next = lines[index].trim();
+
+      if (!next) break;
+
+      if (
+        /^(#{1,6})\s+/.test(next) ||
+        /^[-*+]\s+/.test(next) ||
+        /^\d+[.)]\s+/.test(next) ||
+        next.startsWith(">") ||
+        isHorizontalRule(next)
+      ) {
+        break;
+      }
+
+      if (
+        index + 1 < lines.length &&
+        next.includes("|") &&
+        isTableSeparator(lines[index + 1])
+      ) {
+        break;
+      }
+
+      paragraphLines.push(next);
+      index++;
+    }
+
+    elements.push(
       <Text
-        style={[
-          styles.text,
-          level === 1 && styles.heading1,
-          level === 2 && styles.heading2,
-          level >= 3 && styles.heading3,
-        ]}
+        key={`paragraph-${index}`}
+        style={styles.bodyText}
       >
-        {headingMatch[2]}
+        {renderInline(
+          paragraphLines.join(" ")
+        )}
       </Text>
     );
   }
 
-  // Markdown horizontal rule
-  if (/^([-*_])(?:\s*\1){2,}$/.test(trimmed)) {
-    return <View style={styles.rule} />;
-  }
+  return elements;
+}
 
-  // Numbered list
-  const numbered =
-    trimmed.match(/^(\d+)[.)]\s+(.+)$/);
+function renderInline(
+  text: string
+): React.ReactNode[] {
+  const parts: InlinePart[] = [];
 
-  if (numbered) {
-    return (
-      <View style={styles.listRow}>
-        <Text style={styles.listNumber}>
-          {numbered[1]}.
-        </Text>
+  let remaining = text;
 
-        <Text style={styles.text}>
-          {numbered[2]}
-        </Text>
-      </View>
+  while (remaining.length > 0) {
+    // Bold
+    const bold = remaining.match(
+      /^\*\*(.+?)\*\*/
+    );
+
+    if (bold) {
+      parts.push({
+        type: "bold",
+        text: bold[1],
+      });
+
+      remaining = remaining.slice(
+        bold[0].length
+      );
+
+      continue;
+    }
+
+    // Strike
+    const strike = remaining.match(
+      /^~~(.+?)~~/
+    );
+
+    if (strike) {
+      parts.push({
+        type: "strike",
+        text: strike[1],
+      });
+
+      remaining = remaining.slice(
+        strike[0].length
+      );
+
+      continue;
+    }
+
+    // Inline code
+    const code = remaining.match(
+      /^`(.+?)`/
+    );
+
+    if (code) {
+      parts.push({
+        type: "code",
+        text: code[1],
+      });
+
+      remaining = remaining.slice(
+        code[0].length
+      );
+
+      continue;
+    }
+
+    // Link
+    const link = remaining.match(
+      /^\[([^\]]+)\]\(([^)]+)\)/
+    );
+
+    if (link) {
+      parts.push({
+        type: "link",
+        text: link[1],
+        url: link[2],
+      });
+
+      remaining = remaining.slice(
+        link[0].length
+      );
+
+      continue;
+    }
+
+    // Italic
+    const italic = remaining.match(
+      /^\*(.+?)\*/
+    );
+
+    if (italic) {
+      parts.push({
+        type: "italic",
+        text: italic[1],
+      });
+
+      remaining = remaining.slice(
+        italic[0].length
+      );
+
+      continue;
+    }
+
+    // Plain text
+    let nextSpecial = remaining.length;
+
+    const specialPatterns = [
+      /\*\*/,
+      /~~/,
+      /`/,
+      /\[/,
+      /\*/,
+    ];
+
+    for (const pattern of specialPatterns) {
+      const match = remaining.match(pattern);
+
+      if (
+        match &&
+        match.index !== undefined
+      ) {
+        nextSpecial = Math.min(
+          nextSpecial,
+          match.index
+        );
+      }
+    }
+
+    if (nextSpecial === 0) {
+      parts.push({
+        type: "text",
+        text: remaining[0],
+      });
+
+      remaining = remaining.slice(1);
+      continue;
+    }
+
+    parts.push({
+      type: "text",
+      text: remaining.slice(
+        0,
+        nextSpecial
+      ),
+    });
+
+    remaining = remaining.slice(
+      nextSpecial
     );
   }
 
-  // Bullet list
-  const bullet =
-    trimmed.match(/^[-*+]\s+(.+)$/);
+  return parts.map((part, index) => {
+    const key = `${part.type}-${index}`;
 
-  if (bullet) {
-    return (
-      <View style={styles.listRow}>
-        <Text style={styles.bullet}>
-          •
-        </Text>
+    switch (part.type) {
+      case "bold":
+        return (
+          <Text
+            key={key}
+            style={styles.bold}
+          >
+            {part.text}
+          </Text>
+        );
 
-        <Text style={styles.text}>
-          {bullet[1]}
-        </Text>
-      </View>
-    );
-  }
+      case "italic":
+        return (
+          <Text
+            key={key}
+            style={styles.italic}
+          >
+            {part.text}
+          </Text>
+        );
 
-  // Blockquote
-  if (trimmed.startsWith(">")) {
-    return (
-      <View style={styles.quoteContainer}>
-        <Text style={styles.quote}>
-          {trimmed.replace(/^>\s?/, "")}
-        </Text>
-      </View>
-    );
-  }
+      case "strike":
+        return (
+          <Text
+            key={key}
+            style={styles.strike}
+          >
+            {part.text}
+          </Text>
+        );
+
+      case "code":
+        return (
+          <Text
+            key={key}
+            style={styles.inlineCode}
+          >
+            {part.text}
+          </Text>
+        );
+
+      case "link":
+        return (
+          <Text
+            key={key}
+            style={styles.link}
+          >
+            {part.text}
+          </Text>
+        );
+
+      default:
+        return (
+          <Text key={key}>
+            {part.text}
+          </Text>
+        );
+    }
+  });
+}
+
+function isHorizontalRule(
+  line: string
+): boolean {
+  return /^([-*_])(?:\s*\1){2,}$/.test(
+    line
+  );
+}
+
+function isTableSeparator(
+  line: string
+): boolean {
+  const cells = line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
 
   return (
-    <Text style={styles.text}>
-      {trimmed}
-    </Text>
+    cells.length > 0 &&
+    cells.every((cell) =>
+      /^:?-{3,}:?$/.test(cell)
+    )
+  );
+}
+
+function parseTable(
+  lines: string[],
+  startIndex: number
+) {
+  const headers = parseTableRow(
+    lines[startIndex]
+  );
+
+  let index = startIndex + 2;
+
+  const rows: string[][] = [];
+
+  while (
+    index < lines.length &&
+    lines[index].trim() &&
+    lines[index].includes("|")
+  ) {
+    rows.push(
+      parseTableRow(lines[index])
+    );
+
+    index++;
+  }
+
+  return {
+    headers,
+    rows,
+    nextIndex: index,
+  };
+}
+
+function parseTableRow(
+  line: string
+): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function getHeadingStyle(level: number) {
+  switch (level) {
+    case 1:
+      return styles.heading1;
+
+    case 2:
+      return styles.heading2;
+
+    case 3:
+      return styles.heading3;
+
+    default:
+      return styles.heading4;
+  }
+}
+
+function MarkdownTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator
+      style={styles.tableScroll}
+    >
+      <View style={styles.table}>
+        <View style={styles.tableRow}>
+          {headers.map((header, index) => (
+            <View
+              key={`header-${index}`}
+              style={styles.tableHeaderCell}
+            >
+              <Text style={styles.tableHeaderText}>
+                {renderInline(header)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {rows.map((row, rowIndex) => (
+          <View
+            key={`row-${rowIndex}`}
+            style={styles.tableRow}
+          >
+            {headers.map(
+              (_, columnIndex) => (
+                <View
+                  key={`cell-${rowIndex}-${columnIndex}`}
+                  style={styles.tableCell}
+                >
+                  <Text style={styles.tableText}>
+                    {renderInline(
+                      row[columnIndex] ?? ""
+                    )}
+                  </Text>
+                </View>
+              )
+            )}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -133,69 +660,110 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
 
-  text: {
-    fontFamily: fonts.nudiE05,
+  bodyText: {
+    fontFamily: FONT,
     fontSize: 17,
-    lineHeight: 29,
+    lineHeight: 30,
     color: "#F4F5F7",
-  },
-
-  heading1: {
-    fontSize: 28,
-    lineHeight: 38,
-    fontWeight: "700",
     marginBottom: 12,
   },
 
-  heading2: {
-    fontSize: 23,
-    lineHeight: 32,
+  heading: {
+    fontFamily: FONT,
+    color: "#F4F5F7",
     fontWeight: "700",
+  },
+
+  heading1: {
+    fontSize: 30,
+    lineHeight: 42,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+
+  heading2: {
+    fontSize: 25,
+    lineHeight: 36,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+
+  heading3: {
+    fontSize: 21,
+    lineHeight: 32,
     marginTop: 12,
     marginBottom: 8,
   },
 
-  heading3: {
-    fontSize: 20,
+  heading4: {
+    fontSize: 19,
     lineHeight: 29,
-    fontWeight: "700",
     marginTop: 8,
     marginBottom: 6,
   },
 
-  spacer: {
-    height: 12,
+  bold: {
+    fontFamily: FONT,
+    fontWeight: "700",
   },
 
-  rule: {
+  italic: {
+    fontFamily: FONT,
+    fontStyle: "italic",
+  },
+
+  strike: {
+    fontFamily: FONT,
+    textDecorationLine: "line-through",
+  },
+
+  inlineCode: {
+    fontFamily: FONT,
+    backgroundColor: "#1A1E24",
+  },
+
+  link: {
+    fontFamily: FONT,
+    textDecorationLine: "underline",
+  },
+
+  paragraphSpacing: {
+    height: 6,
+  },
+
+  horizontalRule: {
     height: 1,
-    backgroundColor: "#2B313A",
-    marginVertical: 12,
+    backgroundColor: "#343A43",
+    marginVertical: 16,
+  },
+
+  listContainer: {
+    marginBottom: 10,
   },
 
   listRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingLeft: 8,
     marginBottom: 6,
+    paddingLeft: 6,
   },
 
-  listNumber: {
-    width: 30,
-    fontFamily: fonts.nudiE05,
+  number: {
+    width: 32,
+    fontFamily: FONT,
     fontSize: 17,
-    lineHeight: 29,
+    lineHeight: 30,
     color: "#F4F5F7",
   },
 
   bullet: {
-    width: 25,
-    fontFamily: fonts.nudiE05,
-    fontSize: 20,
-    lineHeight: 29,
+    width: 26,
+    fontFamily: FONT,
+    fontSize: 19,
+    lineHeight: 30,
     color: "#F4F5F7",
   },
 
@@ -203,14 +771,60 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "#8AB4F8",
     paddingLeft: 14,
-    marginVertical: 8,
+    marginVertical: 10,
   },
 
-  quote: {
-    fontFamily: fonts.nudiE05,
+  quoteText: {
+    fontFamily: FONT,
     fontSize: 17,
-    lineHeight: 29,
-    color: "#9AA3AF",
-    fontStyle: "italic",
+    lineHeight: 30,
+    color: "#B5BDC8",
+  },
+
+  tableScroll: {
+    marginVertical: 12,
+  },
+
+  table: {
+    borderWidth: 1,
+    borderColor: "#3A414C",
+  },
+
+  tableRow: {
+    flexDirection: "row",
+  },
+
+  tableHeaderCell: {
+    minWidth: 180,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#171B21",
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#3A414C",
+  },
+
+  tableHeaderText: {
+    fontFamily: FONT,
+    fontSize: 16,
+    lineHeight: 25,
+    fontWeight: "700",
+    color: "#F4F5F7",
+  },
+
+  tableCell: {
+    minWidth: 180,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#3A414C",
+  },
+
+  tableText: {
+    fontFamily: FONT,
+    fontSize: 16,
+    lineHeight: 25,
+    color: "#F4F5F7",
   },
 });
