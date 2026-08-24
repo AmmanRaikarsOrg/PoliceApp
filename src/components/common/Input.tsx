@@ -41,15 +41,15 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    color: "#F4F5F7",
+    color: "#0F172A",
     fontWeight: "600",
   },
 
   input: {
-    color: "#F4F5F7",
-    backgroundColor: "#0B0D10",
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#2B313A",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     padding: 14,
   },

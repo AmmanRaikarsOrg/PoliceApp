@@ -1,28 +1,17 @@
 import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 export function CaseTypeFilter() {
   return (
     <Pressable style={styles.button}>
-      <Text style={styles.text}>
-        Filter
-      </Text>
+      <Feather name="filter" size={20} color="#0F172A" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: "#15181D",
-    borderWidth: 1,
-    borderColor: "#2B313A",
-  },
-
-  text: {
-    color: "#F4F5F7",
-    fontWeight: "600",
+    padding: 4,
   },
 });
