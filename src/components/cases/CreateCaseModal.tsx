@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
@@ -24,6 +25,7 @@ export function CreateCaseModal({
   const [description, setDescription] = useState("");
   const [type, setType] = useState("");
   const [date, setDate] = useState("");
+  const insets = useSafeAreaInsets();
 
   const handleCreate = () => {
     if (!caseName.trim()) {
@@ -43,7 +45,15 @@ export function CreateCaseModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View
+        style={[
+          styles.overlay,
+          {
+            paddingTop: Math.max(20, insets.top),
+            paddingBottom: Math.max(20, insets.bottom),
+          },
+        ]}
+      >
         <View style={styles.modal}>
           <Text style={styles.title}>
             Make New Case

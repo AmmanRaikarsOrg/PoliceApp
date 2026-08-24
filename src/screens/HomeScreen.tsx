@@ -5,6 +5,7 @@ import {
   View,
   Pressable,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../navigation/types";
@@ -19,6 +20,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
   const [createCaseVisible, setCreateCaseVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleCaseCreated = (caseId: string) => {
     setCreateCaseVisible(false);
@@ -29,7 +31,7 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: 16 + insets.bottom }]}>
       <View style={styles.header}>
         <Pressable>
           <Text style={styles.profile}>◯</Text>
@@ -52,7 +54,10 @@ export function HomeScreen({ navigation }: Props) {
       />
 
       <Pressable
-        style={styles.newCaseButton}
+        style={[
+          styles.newCaseButton,
+          { bottom: 24 + insets.bottom },
+        ]}
         onPress={() => setCreateCaseVisible(true)}
       >
         <Text style={styles.newCaseText}>Make New Case</Text>

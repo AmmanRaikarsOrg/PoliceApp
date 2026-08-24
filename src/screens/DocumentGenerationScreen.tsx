@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -26,6 +27,7 @@ export function DocumentGenerationScreen({
   route,
 }: Props) {
   const { caseId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const handleGenerate = () => {
     navigation.replace("CasePage", {
@@ -36,7 +38,10 @@ export function DocumentGenerationScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: 20 + insets.bottom },
+      ]}
     >
       <Text style={styles.title}>
         Document Generation

@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -23,6 +24,7 @@ type Props = NativeStackScreenProps<
 
 export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
     navigation.replace("CasePage", {
@@ -33,7 +35,10 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: 20 + insets.bottom },
+      ]}
     >
       <Text style={styles.title}>Complaint Registration</Text>
 
