@@ -42,20 +42,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 14,
-    backgroundColor: "#F4F5F7",
+    backgroundColor: "#0F294A",
     alignItems: "center",
   },
 
   secondary: {
-    backgroundColor: "#2B313A",
+    backgroundColor: "#E2E8F0",
   },
 
   text: {
-    color: "#0B0D10",
+    color: "#FFFFFF",
     fontWeight: "700",
   },
 
   secondaryText: {
-    color: "#F4F5F7",
+    color: "#0F294A",
   },
 });

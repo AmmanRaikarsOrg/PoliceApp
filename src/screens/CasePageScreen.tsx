@@ -76,7 +76,7 @@ export function CasePageScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0D10",
+    backgroundColor: "#F8FAFC",
   },
 
   content: {
@@ -85,29 +85,31 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#0F294A",
     fontSize: 28,
     fontWeight: "800",
   },
 
   caseId: {
-    color: "#9AA3AF",
+    color: "#475569",
   },
 
   complaintBlock: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#15181D",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
 
   sectionTitle: {
-    color: "#F4F5F7",
+    color: "#0F172A",
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 12,
   },
 
   placeholder: {
-    color: "#9AA3AF",
+    color: "#64748B",
   },
 });

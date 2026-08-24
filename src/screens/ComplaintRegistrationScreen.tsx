@@ -69,7 +69,7 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0D10",
+    backgroundColor: "#F8FAFC",
   },
 
   content: {
@@ -78,12 +78,12 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#0F294A",
     fontSize: 28,
     fontWeight: "800",
   },
 
   caseId: {
-    color: "#9AA3AF",
+    color: "#475569",
   },
 });
