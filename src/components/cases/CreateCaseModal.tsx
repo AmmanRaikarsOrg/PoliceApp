@@ -109,19 +109,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(50, 44, 44, 0.7)",
   },
 
   modal: {
     padding: 20,
     borderRadius: 20,
-    backgroundColor: "#15181D",
+    backgroundColor: "#e9e9e9ff",
     gap: 14,
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#000000ff",
     fontSize: 24,
     fontWeight: "800",
   },
+  caseTypeLabel: {
+    color: "#635959ff",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  caseTypeInput: {
+    borderBottomColor: "#000000ff",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+  }
 });

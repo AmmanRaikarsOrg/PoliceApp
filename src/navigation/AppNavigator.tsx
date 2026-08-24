@@ -5,10 +5,10 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "./types";
 
 import { AuthScreen } from "../screens/AuthScreen";
-import { HomeScreen } from "../screens/HomeScreen";
-import { ComplaintRegistrationScreen } from "../screens/ComplaintRegistrationScreen";
 import { CasePageScreen } from "../screens/CasePageScreen";
+import { ComplaintRegistrationScreen } from "../screens/ComplaintRegistrationScreen";
 import { DocumentGenerationScreen } from "../screens/DocumentGenerationScreen";
+import { HomeScreen } from "../screens/HomeScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,14 +18,14 @@ export function AppNavigator() {
       initialRouteName="Auth"
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#0B0D10",
+          backgroundColor: "#FFFFFF",
         },
-        headerTintColor: "#F4F5F7",
+        headerTintColor: "#0F172A",
         headerTitleStyle: {
           fontWeight: "700",
         },
         contentStyle: {
-          backgroundColor: "#0B0D10",
+          backgroundColor: "#F8FAFC",
         },
       }}
     >
@@ -41,7 +41,7 @@ export function AppNavigator() {
         name="Home"
         component={HomeScreen}
         options={{
-          title: "Case Files",
+          headerShown: false,
         }}
       />
 
