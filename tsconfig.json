@@ -1,10 +1,14 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "jsx": "react-native",
     "strict": true,
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@expo/vector-icons": [
+        "./node_modules/expo/node_modules/@expo/vector-icons"
       ]
     }
   },
