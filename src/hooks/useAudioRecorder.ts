@@ -3,11 +3,18 @@ import { Alert } from "react-native";
 import { useAudioRecorder as useExpoAudioRecorder, RecordingPresets } from "expo-audio";
 import { configureAudio, requestAudioPermission } from "../services/audio/audioService";
 
+export type RecordedAudio = {
+  id: string;
+  uri: string;
+  name: string;
+  duration: number; // in seconds
+  createdAt: string;
+};
+
 export function useAudioRecorder() {
   const recorder = useExpoAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [recordedUri, setRecordedUri] = useState<string | null>(null);
-  const [isCleared, setIsCleared] = useState(false);
+  const [recordings, setRecordings] = useState<RecordedAudio[]>([]);
 
   const start = async (): Promise<boolean> => {
     if (recorder.isRecording || isProcessing) {
@@ -27,8 +34,6 @@ export function useAudioRecorder() {
       await configureAudio();
       await recorder.prepareToRecordAsync();
       recorder.record();
-      setRecordedUri(null);
-      setIsCleared(false);
       return true;
     } catch (error) {
       console.error("Failed to start recording:", error);
@@ -39,43 +44,59 @@ export function useAudioRecorder() {
     }
   };
 
-  const stop = async (): Promise<string | null> => {
+  const stop = async (save: boolean = true): Promise<RecordedAudio | null> => {
     if (!recorder.isRecording || isProcessing) {
-      return isCleared ? null : (recordedUri || recorder.uri || null);
+      return null;
     }
     setIsProcessing(true);
     try {
       await recorder.stop();
       const finalUri = recorder.uri;
-      setRecordedUri(finalUri);
-      setIsCleared(false);
-      return finalUri;
+
+      if (!save || !finalUri) {
+        return null;
+      }
+
+      const durationSecs = Math.max(1, Math.round((recorder.currentTime || 1)));
+
+      const newRecording: RecordedAudio = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        uri: finalUri,
+        name: `Recording ${recordings.length + 1}`,
+        duration: durationSecs,
+        createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setRecordings((prev) => [...prev, newRecording]);
+      return newRecording;
     } catch (error) {
       console.error("Failed to stop recording:", error);
       Alert.alert("Recording Error", "Failed to stop recording cleanly.");
-      const finalUri = recorder.uri || null;
-      setRecordedUri(finalUri);
-      setIsCleared(false);
-      return finalUri;
+      return null;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const clearRecording = () => {
-    setRecordedUri(null);
-    setIsCleared(true);
+  const removeRecording = (id: string) => {
+    setRecordings((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const activeUri = isCleared ? null : (recordedUri || recorder.uri || null);
+  const clearRecordings = () => {
+    setRecordings([]);
+  };
+
+  const latestRecording = recordings.length > 0 ? recordings[recordings.length - 1] : null;
 
   return {
     recorder,
     isRecording: recorder.isRecording,
     isProcessing,
-    uri: activeUri,
+    recordings,
+    latestUri: latestRecording?.uri || null,
     start,
     stop,
-    clearRecording,
+    removeRecording,
+    clearRecordings,
   };
 }

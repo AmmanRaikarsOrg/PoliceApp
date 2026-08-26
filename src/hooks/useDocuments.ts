@@ -28,7 +28,16 @@ export function useDocuments() {
     fetchTemplates();
   }, []);
 
-  const createDocument = async (caseId: string, payload: { templateId: string; audioUri?: string | null; audioFile?: any }) => {
+  const createDocument = async (
+    caseId: string,
+    payload: {
+      templateId: string;
+      audioUri?: string | null;
+      recordings?: any[];
+      audioFile?: any;
+      file?: any;
+    }
+  ) => {
     try {
       setLoading(true);
       setError(null);

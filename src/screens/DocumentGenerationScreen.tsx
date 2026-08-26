@@ -43,6 +43,7 @@ export function DocumentGenerationScreen({
   } = useDocuments();
 
   const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [recordingsList, setRecordingsList] = useState<any[]>([]);
   const [audioFile, setAudioFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   const handleBack = () => {
@@ -59,12 +60,14 @@ export function DocumentGenerationScreen({
       await createDocument(caseId, {
         templateId: selectedTemplate.id,
         audioUri,
+        recordings: recordingsList,
         audioFile,
+        file: audioFile,
       });
 
       Alert.alert(
         "Document Generated",
-        `Successfully processed audio for ${selectedTemplate.name}.`,
+        `Successfully processed input for ${selectedTemplate.name}.`,
         [
           {
             text: "OK",
@@ -147,6 +150,12 @@ export function DocumentGenerationScreen({
 
         {/* 3. Audio Recording Card */}
         <AudioRecorder
+          onRecordingsChange={(list) => {
+            setRecordingsList(list);
+            if (list.length > 0) {
+              setAudioFile(null);
+            }
+          }}
           onRecordingComplete={(uri) => {
             setAudioUri(uri);
             if (uri) {

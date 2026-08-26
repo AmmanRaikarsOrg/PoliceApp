@@ -12,7 +12,7 @@ import { DocumentTemplate } from "../../services/documents/documentService";
 type Props = {
   templates?: DocumentTemplate[];
   selectedTemplate?: DocumentTemplate | null;
-  onSelectTemplate?: (template: DocumentTemplate) => void;
+  onSelectTemplate?: (template: DocumentTemplate | null) => void;
   loading?: boolean;
 };
 
@@ -25,7 +25,11 @@ export function TemplateSelector({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = (template: DocumentTemplate) => {
-    onSelectTemplate?.(template);
+    if (selectedTemplate?.id === template.id) {
+      onSelectTemplate?.(null);
+    } else {
+      onSelectTemplate?.(template);
+    }
     setIsOpen(false);
   };
 
