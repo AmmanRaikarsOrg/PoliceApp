@@ -1,24 +1,39 @@
 import React from "react";
-import { StyleSheet, TextInput } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 export function CaseSearchBar() {
   return (
-    <TextInput
-      placeholder="Search cases..."
-      placeholderTextColor="#6F7782"
-      style={styles.input}
-    />
+    <View style={styles.container}>
+      <Feather name="search" size={18} color="#64748B" style={styles.icon} />
+      <TextInput
+        placeholder="Search cases by ID, name, or location..."
+        placeholderTextColor="#94A3B8"
+        style={styles.input}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#15181D",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    color: "#F4F5F7",
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#2B313A",
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    marginTop: 16,
+    height: 44,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0F172A",
+    height: "100%",
   },
 });

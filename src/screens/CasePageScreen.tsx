@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<
 
 export function CasePageScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
+  const insets = useSafeAreaInsets();
 
   const handleGenerateDocument = () => {
     navigation.navigate("DocumentGeneration", {
@@ -30,7 +32,10 @@ export function CasePageScreen({ navigation, route }: Props) {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: 20 + insets.bottom },
+      ]}
     >
       <Text style={styles.title}>Case</Text>
 
@@ -71,7 +76,7 @@ export function CasePageScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0D10",
+    backgroundColor: "#F8FAFC",
   },
 
   content: {
@@ -80,29 +85,31 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#0F294A",
     fontSize: 28,
     fontWeight: "800",
   },
 
   caseId: {
-    color: "#9AA3AF",
+    color: "#475569",
   },
 
   complaintBlock: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#15181D",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
 
   sectionTitle: {
-    color: "#F4F5F7",
+    color: "#0F172A",
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 12,
   },
 
   placeholder: {
-    color: "#9AA3AF",
+    color: "#64748B",
   },
 });

@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
@@ -24,6 +25,7 @@ export function CreateCaseModal({
   const [description, setDescription] = useState("");
   const [type, setType] = useState("");
   const [date, setDate] = useState("");
+  const insets = useSafeAreaInsets();
 
   const handleCreate = () => {
     if (!caseName.trim()) {
@@ -43,7 +45,15 @@ export function CreateCaseModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View
+        style={[
+          styles.overlay,
+          {
+            paddingTop: Math.max(20, insets.top),
+            paddingBottom: Math.max(20, insets.bottom),
+          },
+        ]}
+      >
         <View style={styles.modal}>
           <Text style={styles.title}>
             Make New Case
@@ -99,19 +109,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(50, 44, 44, 0.7)",
   },
 
   modal: {
     padding: 20,
     borderRadius: 20,
-    backgroundColor: "#15181D",
+    backgroundColor: "#e9e9e9ff",
     gap: 14,
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#000000ff",
     fontSize: 24,
     fontWeight: "800",
   },
+  caseTypeLabel: {
+    color: "#635959ff",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  caseTypeInput: {
+    borderBottomColor: "#000000ff",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+  }
 });

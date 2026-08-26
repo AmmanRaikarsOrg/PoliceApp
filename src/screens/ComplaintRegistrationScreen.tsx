@@ -6,6 +6,7 @@ import {
   View,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -71,6 +72,7 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
       current.filter((recording) => recording.id !== id)
     );
   };
+  const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
     navigation.replace("CasePage", {
@@ -81,7 +83,10 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: 20 + insets.bottom },
+      ]}
     >
       <View style={styles.heading}>
         <Text style={styles.eyebrow}>NEW COMPLAINT</Text>
@@ -168,7 +173,7 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0D10",
+    backgroundColor: "#F8FAFC",
   },
 
   content: {
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#F4F5F7",
+    color: "#0F294A",
     fontSize: 30,
     fontWeight: "800",
   },
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
   },
 
   caseId: {
-    color: "#9AA3AF",
+    color: "#475569",
     fontSize: 14,
     fontWeight: "700",
   },

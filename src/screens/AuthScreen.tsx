@@ -1,9 +1,10 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../navigation/types";
-import { LoginForm } from "../components/auth/LoginForm";
+import { LoginScreen } from "./LoginScreen";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Auth">;
 
@@ -13,15 +14,18 @@ export function AuthScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <LoginForm onLoginSuccess={handleLoginSuccess} />
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <LoginScreen
+        navigation={navigation}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#0B0D10",
+    backgroundColor: "#F4F6F9",
   },
 });
