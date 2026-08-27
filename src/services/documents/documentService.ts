@@ -1,5 +1,11 @@
 import { apiRequest } from "../api/client";
 
+export type DocumentTemplate = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
 export async function getTemplates() {
   return apiRequest("/templates");
 }
