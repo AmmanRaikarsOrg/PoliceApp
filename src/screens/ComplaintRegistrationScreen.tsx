@@ -1,5 +1,7 @@
 import React from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -33,36 +35,41 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
-      contentContainerStyle={[
-        styles.content,
-        { paddingBottom: 20 + insets.bottom },
-      ]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Text style={styles.title}>Complaint Registration</Text>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 20 + insets.bottom },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Complaint Registration</Text>
 
-      <Text style={styles.caseId}>
-        Case: {caseId}
-      </Text>
+        <Text style={styles.caseId}>
+          Case: {caseId}
+        </Text>
 
-      <AudioRecorder />
+        <AudioRecorder />
 
-      <AudioUploader />
+        <AudioUploader />
 
-      <AudioList />
+        {/* <AudioList /> */}
 
-      <Input
-        label="Special Instructions"
-        placeholder="Add special commands or extra tweaks..."
-        multiline
-      />
+        <Input
+          label="Special Instructions"
+          placeholder="Add special commands or extra tweaks..."
+          multiline
+        />
 
-      <Button
-        title="Complete Complaint"
-        onPress={handleContinue}
-      />
-    </ScrollView>
+        <Button
+          title="Complete Complaint"
+          onPress={handleContinue}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
