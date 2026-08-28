@@ -47,7 +47,7 @@ export function AudioRecorder({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     let pulseAnimation: Animated.CompositeAnimation;
 
     if (isRecording) {
