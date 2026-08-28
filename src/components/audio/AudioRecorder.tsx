@@ -30,21 +30,20 @@ export function AudioRecorder({
   onRecordingComplete,
 }: Props) {
   const {
-    status,
     recorder,
     isRecording,
     isProcessing,
     recordings,
     start,
-    pause,
-    resume,
+    // pause,
+    // resume,
     stop,
-    uri,
+    latestUri,
     removeRecording,
     clearRecordings,
   } = useAudioRecorder();
   const [fileSize, setFileSize] = useState<number | null>(null);
-
+  const uri = latestUri
   useEffect(() => {
     if (!uri) {
       setFileSize(null);
@@ -66,7 +65,7 @@ export function AudioRecorder({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     let pulseAnimation: Animated.CompositeAnimation;
 
     if (isRecording) {
