@@ -9,6 +9,7 @@ export type RootStackParamList = {
 
   CasePage: {
     caseId: string;
+    newDocumentName?: string;
   };
 
   DocumentGeneration: {

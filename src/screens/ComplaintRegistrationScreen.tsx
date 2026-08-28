@@ -5,79 +5,95 @@ import {
   Text,
   View,
   ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-
 import type { RootStackParamList } from "../navigation/types";
 
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import {
-  AudioRecorder,
-  type RecordedAudio,
-} from "../components/audio/AudioRecorder";
-import {
-  AudioUploader,
-  type UploadedAudio,
-} from "../components/audio/AudioUploader";
-import { Input } from "../components/common/Input";
-import { Button } from "../components/common/Button";
+  configureAudio,
+  requestAudioPermission,
+} from "../services/audio/audioService";
+import * as DocumentPicker from "expo-document-picker";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "ComplaintRegistration"
 >;
 
-type ComplaintAudio = {
+type AttachedAudio = {
   id: string;
   name: string;
-  uri: string;
   source: "Recorded" | "Uploaded";
 };
 
 export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
-  const [recordings, setRecordings] = useState<ComplaintAudio[]>([]);
-  const [instructions, setInstructions] = useState("");
-
-  const addRecording = (
-    recording: RecordedAudio | UploadedAudio,
-    source: ComplaintAudio["source"]
-  ) => {
-    setRecordings((current) => [
-      ...current,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        name: recording.name,
-        uri: recording.uri,
-        source,
-      },
-    ]);
-  };
-
-  const handleAudioSelected = (audio: UploadedAudio[]) => {
-    setRecordings((current) => [
-      ...current,
-      ...audio.map((recording, index) => ({
-        id: `${Date.now()}-${index}-${Math.random()}`,
-        name: recording.name,
-        uri: recording.uri,
-        source: "Uploaded" as const,
-      })),
-    ]);
-  };
-
-  const removeRecording = (id: string) => {
-    setRecordings((current) =>
-      current.filter((recording) => recording.id !== id)
-    );
-  };
   const insets = useSafeAreaInsets();
+  const { isRecording, start, stop } = useAudioRecorder();
 
-  const handleContinue = () => {
-    navigation.replace("CasePage", {
-      caseId,
-    });
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [recordings, setRecordings] = useState<AttachedAudio[]>([]);
+
+  const handleRecordPress = async () => {
+    if (isRecording) {
+      const uri = await stop();
+      if (uri) {
+        setRecordings((prev) => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            name: `Complaint Recording ${prev.length + 1}`,
+            source: "Recorded",
+          },
+        ]);
+      }
+      return;
+    }
+
+    try {
+      setIsPreparing(true);
+      const perm = await requestAudioPermission();
+      if (!perm.granted) {
+        Alert.alert("Permission required", "Microphone access is needed to record.");
+        return;
+      }
+      await configureAudio();
+      await start();
+    } catch {
+      Alert.alert("Error", "Unable to start recording.");
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
+  const handleUploadPress = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: "audio/*",
+        multiple: true,
+      });
+
+      if (!res.canceled && res.assets) {
+        const newAudios: AttachedAudio[] = res.assets.map((asset, i) => ({
+          id: `${Date.now()}-${i}`,
+          name: asset.name,
+          source: "Uploaded",
+        }));
+        setRecordings((prev) => [...prev, ...newAudios]);
+      }
+    } catch {
+      Alert.alert("Error", "Could not upload audio file.");
+    }
+  };
+
+  const handleProcessAudio = () => {
+    navigation.replace("CasePage", { caseId });
   };
 
   return (
@@ -85,87 +101,69 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
       style={styles.container}
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: 20 + insets.bottom },
+        { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom + 20, 24) },
       ]}
     >
-      <View style={styles.heading}>
-        <Text style={styles.eyebrow}>NEW COMPLAINT</Text>
-        <Text style={styles.title}>Complaint Registration</Text>
-        <Text style={styles.subtitle}>
-          Capture the complainant’s statement or attach an existing audio file.
-        </Text>
-      </View>
+      <Text style={styles.title}>Complaint Registration</Text>
 
-      <View style={styles.caseBadge}>
-        <Text style={styles.caseLabel}>CASE ID</Text>
-        <Text style={styles.caseId}>{caseId}</Text>
-      </View>
-
-      <View style={styles.recorderCard}>
-        <Text style={styles.sectionTitle}>Record statement</Text>
-        <Text style={styles.sectionDescription}>
-          Keep the phone close to the speaker for a clear recording.
-        </Text>
-
-        <AudioRecorder
-          onRecordingComplete={(recording) =>
-            addRecording(recording, "Recorded")
-          }
-        />
-      </View>
-
-      <View style={styles.uploadSection}>
-        <Text style={styles.sectionTitle}>Or upload audio</Text>
-        <AudioUploader onAudioSelected={handleAudioSelected} />
-      </View>
-
-      <View style={styles.recordingsSection}>
-        <View style={styles.recordingsHeader}>
-          <Text style={styles.sectionTitle}>Attached audio</Text>
-          <Text style={styles.recordingCount}>{recordings.length}</Text>
+      {/* Record Card */}
+      <Pressable style={styles.card} onPress={handleRecordPress} disabled={isPreparing}>
+        <View style={[styles.iconCircle, isRecording && styles.iconCircleActive]}>
+          {isPreparing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Feather name="mic" size={24} color="#FFFFFF" />
+          )}
         </View>
+        <Text style={styles.cardTitle}>
+          {isRecording ? "Tap to stop recording" : "Tap to start recording"}
+        </Text>
+        <Text style={styles.cardSubtitle}>
+          {isRecording ? "Recording audio..." : "Ensure a quiet environment"}
+        </Text>
+      </Pressable>
 
-        {recordings.length === 0 ? (
-          <Text style={styles.emptyState}>
-            No audio has been attached yet.
-          </Text>
-        ) : (
-          recordings.map((recording, index) => (
-            <View key={recording.id} style={styles.audioRow}>
-              <View style={styles.audioNumber}>
-                <Text style={styles.audioNumberText}>{index + 1}</Text>
-              </View>
-
-              <View style={styles.audioDetails}>
-                <Text numberOfLines={1} style={styles.audioName}>
-                  {recording.name}
-                </Text>
-                <Text style={styles.audioMeta}>
-                  {recording.source} audio
-                </Text>
-              </View>
-
-              <Pressable
-                accessibilityLabel={`Remove ${recording.name}`}
-                hitSlop={10}
-                onPress={() => removeRecording(recording.id)}
-              >
-                <Text style={styles.removeText}>Remove</Text>
-              </Pressable>
-            </View>
-          ))
-        )}
+      {/* OR Divider */}
+      <View style={styles.dividerContainer}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.dividerLine} />
       </View>
 
-      <Input
-        label="Special Instructions"
-        placeholder="Add special commands or extra tweaks..."
-        multiline
-        value={instructions}
-        onChangeText={setInstructions}
-      />
+      {/* Upload Card */}
+      <Pressable style={styles.card} onPress={handleUploadPress}>
+        <View style={styles.uploadIconBox}>
+          <Feather name="file-text" size={24} color="#0F294A" />
+        </View>
+        <Text style={styles.cardTitle}>Upload Audio File</Text>
+        <Text style={styles.cardSubtitle}>MP3, WAV, M4A up to 50MB</Text>
+      </Pressable>
 
-      <Button title="Complete Complaint" onPress={handleContinue} />
+      {/* Attached Audio List */}
+      {recordings.length > 0 && (
+        <View style={styles.attachedContainer}>
+          <Text style={styles.attachedHeader}>Attached Files ({recordings.length})</Text>
+          {recordings.map((item) => (
+            <View key={item.id} style={styles.audioRow}>
+              <Feather name="music" size={16} color="#0F294A" />
+              <Text style={styles.audioName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.audioSource}>{item.source}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Pressable style={styles.primaryButton} onPress={handleProcessAudio}>
+          <Text style={styles.primaryButtonText}>Process Audio</Text>
+          <Feather name="arrow-right" size={18} color="#FFFFFF" />
+        </Pressable>
+
+        <Pressable style={styles.secondaryButton} onPress={handleProcessAudio}>
+          <Text style={styles.secondaryButtonText}>Save as Draft</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -175,163 +173,133 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
-
   content: {
     padding: 20,
-    paddingBottom: 36,
     gap: 20,
   },
-
-  heading: {
-    gap: 7,
-  },
-
-  eyebrow: {
-    color: "#8EA9FF",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.1,
-  },
-
   title: {
     color: "#0F294A",
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "800",
+    letterSpacing: -0.5,
+    marginTop: 8,
   },
-
-  subtitle: {
-    color: "#9AA3AF",
-    fontSize: 15,
-    lineHeight: 22,
-  },
-
-  caseBadge: {
-    alignSelf: "flex-start",
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "#15181D",
-    borderWidth: 1,
-    borderColor: "#2B313A",
-    gap: 2,
-  },
-
-  caseLabel: {
-    color: "#7E8996",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-  },
-
-  caseId: {
-    color: "#475569",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  recorderCard: {
-    padding: 20,
-    borderRadius: 20,
-    backgroundColor: "#15181D",
-    borderWidth: 1,
-    borderColor: "#2B313A",
-  },
-
-  sectionTitle: {
-    color: "#F4F5F7",
-    fontSize: 17,
-    fontWeight: "800",
-  },
-
-  sectionDescription: {
-    color: "#9AA3AF",
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 5,
-  },
-
-  uploadSection: {
-    gap: 10,
-  },
-
-  recordingsSection: {
-    gap: 10,
-  },
-
-  recordingsHeader: {
-    flexDirection: "row",
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  recordingCount: {
-    minWidth: 24,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
-    borderRadius: 12,
-    color: "#C8D2E0",
-    backgroundColor: "#252B33",
-    fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-
-  emptyState: {
-    padding: 16,
-    borderRadius: 14,
+    justifyContent: "center",
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#39424E",
-    color: "#7E8996",
-    textAlign: "center",
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-
-  audioRow: {
-    minHeight: 66,
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#0F294A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  iconCircleActive: {
+    backgroundColor: "#EF4444",
+  },
+  uploadIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  cardTitle: {
+    color: "#0F294A",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    color: "#64748B",
+    fontSize: 13,
+  },
+  dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: "#15181D",
-    borderWidth: 1,
-    borderColor: "#2B313A",
+    marginVertical: 4,
   },
-
-  audioNumber: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-    backgroundColor: "#252B33",
-  },
-
-  audioNumberText: {
-    color: "#DDE5EF",
-    fontWeight: "800",
-  },
-
-  audioDetails: {
+  dividerLine: {
     flex: 1,
-    gap: 3,
+    height: 1,
+    backgroundColor: "#E2E8F0",
   },
-
-  audioName: {
-    color: "#F4F5F7",
-    fontSize: 14,
+  dividerText: {
+    color: "#94A3B8",
+    fontSize: 12,
     fontWeight: "700",
   },
-
-  audioMeta: {
-    color: "#8994A2",
-    fontSize: 12,
+  attachedContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 8,
   },
-
-  removeText: {
-    color: "#FF8585",
+  attachedHeader: {
     fontSize: 13,
     fontWeight: "700",
+    color: "#475569",
+    marginBottom: 2,
+  },
+  audioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
+  audioName: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  audioSource: {
+    color: "#64748B",
+    fontSize: 12,
+  },
+  actions: {
+    gap: 14,
+    marginTop: 10,
+  },
+  primaryButton: {
+    backgroundColor: "#0F294A",
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  secondaryButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: "#475569",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

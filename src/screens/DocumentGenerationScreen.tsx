@@ -7,207 +7,182 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import * as DocumentPicker from "expo-document-picker";
-
 import type { RootStackParamList } from "../navigation/types";
 import { useDocuments } from "../hooks/useDocuments";
 
-import { TemplateSelector } from "../components/documents/TemplateSelector";
-import { AudioRecorder } from "../components/audio/AudioRecorder";
-import { AudioUploader } from "../components/audio/AudioUploader";
-import { Button } from "../components/common/Button";
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import {
+  configureAudio,
+  requestAudioPermission,
+} from "../services/audio/audioService";
+import * as DocumentPicker from "expo-document-picker";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "DocumentGeneration"
 >;
 
-export function DocumentGenerationScreen({
-  navigation,
-  route,
-}: Props) {
+type CaseFileOption = {
+  id: string;
+  title: string;
+  icon: keyof typeof Feather.glyphMap;
+  selected: boolean;
+};
+
+export function DocumentGenerationScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
   const insets = useSafeAreaInsets();
+  const { isRecording, start, stop } = useAudioRecorder();
 
-  const {
-    loading,
-    templates,
-    selectedTemplate,
-    setSelectedTemplate,
-    createDocument,
-    saveDraft,
-  } = useDocuments();
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [caseFiles, setCaseFiles] = useState<CaseFileOption[]>([
+    { id: "1", title: "Complaint Form", icon: "file-text", selected: true },
+    { id: "2", title: "First Information Report (FIR)", icon: "file", selected: false },
+    { id: "3", title: "Panchanama / Seizure Memo", icon: "check-square", selected: false },
+    { id: "4", title: "Witness Statements", icon: "users", selected: false },
+  ]);
 
-  const [audioUri, setAudioUri] = useState<string | null>(null);
-  const [recordingsList, setRecordingsList] = useState<any[]>([]);
-  const [audioFile, setAudioFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
-
-  const handleBack = () => {
-    navigation.navigate("CasePage", { caseId });
+  const toggleFile = (id: string) => {
+    setCaseFiles((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, selected: !item.selected } : item
+      )
+    );
   };
 
-  const handleProcessAudio = async () => {
-    if (!selectedTemplate) {
-      Alert.alert("Template Required", "Please select a document template before processing.");
+  const handleRecordPress = async () => {
+    if (isRecording) {
+      await stop();
       return;
     }
 
     try {
-      await createDocument(caseId, {
-        templateId: selectedTemplate.id,
-        audioUri,
-        recordings: recordingsList,
-        audioFile,
-        file: audioFile,
-      });
-
-      Alert.alert(
-        "Document Generated",
-        `Successfully processed input for ${selectedTemplate.name}.`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              navigation.navigate("CasePage", { caseId });
-            },
-          },
-        ]
-      );
-    } catch (err) {
-      // Fallback navigation if API endpoint is not active locally
-      Alert.alert(
-        "Notice",
-        "Document request initiated. Returning to Case page.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              navigation.navigate("CasePage", { caseId });
-            },
-          },
-        ]
-      );
+      setIsPreparing(true);
+      const perm = await requestAudioPermission();
+      if (!perm.granted) {
+        Alert.alert("Permission required", "Microphone access is needed.");
+        return;
+      }
+      await configureAudio();
+      await start();
+    } catch {
+      Alert.alert("Error", "Unable to start recording.");
+    } finally {
+      setIsPreparing(false);
     }
   };
 
-  const handleSaveDraft = async () => {
+  const handleUploadPress = async () => {
     try {
-      await saveDraft(caseId, {
-        templateId: selectedTemplate?.id,
-        audioUri,
+      await DocumentPicker.getDocumentAsync({
+        type: "audio/*",
       });
-      Alert.alert("Draft Saved", "Your document draft has been saved successfully.", [
-        {
-          text: "OK",
-          onPress: () => navigation.navigate("CasePage", { caseId }),
-        },
-      ]);
-    } catch (err) {
-      Alert.alert("Draft Saved", "Your document draft has been saved locally.");
+    } catch {
+      // Handled silently
     }
+  };
+
+  const handleProcessAudio = () => {
+    const selectedFile = caseFiles.find((f) => f.selected)?.title || "Generated Document";
+    navigation.replace("CasePage", {
+      caseId,
+      newDocumentName: selectedFile,
+    });
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 1. Header Row */}
-      <View style={styles.topHeader}>
-        <Image
-          source={{ uri: "https://i.pravatar.cc/150?img=68" }}
-          style={styles.profileAvatar}
-        />
-        <Pressable hitSlop={10} accessibilityRole="button" accessibilityLabel="Notifications">
-          <Feather name="bell" size={22} color="#0F294A" />
-        </Pressable>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom + 20, 24) },
+      ]}
+    >
+      <Text style={styles.title}>Document Generation</Text>
+
+      {/* Record Audio Card */}
+      <Pressable style={styles.card} onPress={handleRecordPress} disabled={isPreparing}>
+        <View style={[styles.iconCircle, isRecording && styles.iconCircleActive]}>
+          {isPreparing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Feather name="mic" size={24} color="#FFFFFF" />
+          )}
+        </View>
+        <Text style={styles.cardTitle}>
+          {isRecording ? "Tap to stop recording" : "Tap to start recording"}
+        </Text>
+        <Text style={styles.cardSubtitle}>
+          {isRecording ? "Recording audio..." : "Ensure a quiet environment"}
+        </Text>
+      </Pressable>
+
+      {/* OR Divider */}
+      <View style={styles.dividerContainer}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.dividerLine} />
       </View>
 
-      {/* Thin Divider Underhead Header */}
-      <View style={styles.headerDivider} />
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom + 20, 32) },
-        ]}
-      >
-        {/* 2. Page Title Row */}
-        <View style={styles.titleRow}>
-          <Pressable
-            onPress={handleBack}
-            style={styles.backButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Go back to Case Page"
-          >
-            <Feather name="chevron-left" size={24} color="#0F294A" />
-          </Pressable>
-          <Text style={styles.pageTitle}>Document Generation</Text>
+      {/* Upload Card */}
+      <Pressable style={styles.card} onPress={handleUploadPress}>
+        <View style={styles.uploadIconBox}>
+          <Feather name="file-text" size={24} color="#0F294A" />
         </View>
+        <Text style={styles.cardTitle}>Upload Audio File</Text>
+        <Text style={styles.cardSubtitle}>MP3, WAV, M4A up to 50MB</Text>
+      </Pressable>
 
-        {/* 3. Audio Recording Card */}
-        <AudioRecorder
-          onRecordingsChange={(list) => {
-            setRecordingsList(list);
-            if (list.length > 0) {
-              setAudioFile(null);
-            }
-          }}
-          onRecordingComplete={(uri) => {
-            setAudioUri(uri);
-            if (uri) {
-              setAudioFile(null);
-            }
-          }}
-        />
-
-        {/* 4. OR Divider */}
-        <View style={styles.orDividerContainer}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.orLine} />
-        </View>
-
-        {/* 5. Upload Audio Card */}
-        <AudioUploader
-          onFileSelected={(file) => {
-            setAudioFile(file);
-            if (file) {
-              setAudioUri(null);
-            }
-          }}
-        />
-
-        {/* 6. Document Template Selector */}
-        <TemplateSelector
-          templates={templates}
-          selectedTemplate={selectedTemplate}
-          onSelectTemplate={(tpl) => setSelectedTemplate(tpl)}
-          loading={loading && templates.length === 0}
-        />
-
-        {/* 7. Primary Action Button */}
-        <Button
-          title="Process Audio →"
-          onPress={handleProcessAudio}
-          loading={loading}
-          style={styles.primaryButton}
-        />
-
-        {/* 8. Secondary Action Button */}
-        <Pressable
-          onPress={handleSaveDraft}
-          style={styles.saveDraftButton}
-          hitSlop={8}
-          accessibilityRole="button"
-        >
-          <Text style={styles.saveDraftText}>Save as Draft</Text>
+      {/* Case Files Selector */}
+      <View style={styles.matrixContainer}>
+        <Pressable style={styles.dropdownHeader}>
+          <Text style={styles.dropdownText}>Dropdown to select case files...</Text>
+          <Feather name="chevron-down" size={18} color="#64748B" />
         </Pressable>
-      </ScrollView>
-    </View>
+
+        <Text style={styles.matrixLabel}>AVAILABLE CASE FILES MATRIX</Text>
+
+        <View style={styles.matrixList}>
+          {caseFiles.map((item) => (
+            <Pressable
+              key={item.id}
+              style={[styles.matrixItem, item.selected && styles.matrixItemSelected]}
+              onPress={() => toggleFile(item.id)}
+            >
+              <Feather name={item.icon} size={18} color={item.selected ? "#0F294A" : "#64748B"} />
+              <Text style={[styles.matrixItemText, item.selected && styles.matrixItemTextSelected]}>
+                {item.title}
+              </Text>
+              <Feather
+                name={item.selected ? "check" : "chevron-right"}
+                size={16}
+                color={item.selected ? "#0F294A" : "#94A3B8"}
+              />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Pressable style={styles.primaryButton} onPress={handleProcessAudio}>
+          <Text style={styles.primaryButtonText}>Process Audio</Text>
+          <Feather name="arrow-right" size={18} color="#FFFFFF" />
+        </Pressable>
+
+        <Pressable style={styles.secondaryButton} onPress={handleProcessAudio}>
+          <Text style={styles.secondaryButtonText}>Save as Draft</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -216,79 +191,156 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
-  topHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    height: 52,
-    backgroundColor: "#FFFFFF",
-  },
-  profileAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#E2E8F0",
-  },
-  headerDivider: {
-    height: 1,
-    backgroundColor: "#E2E8F0",
-    width: "100%",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+  content: {
+    padding: 20,
     gap: 16,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
+  title: {
+    color: "#0F294A",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginTop: 8,
   },
-  backButton: {
-    width: 32,
-    height: 32,
+  card: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#0F294A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  iconCircleActive: {
+    backgroundColor: "#EF4444",
+  },
+  uploadIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginBottom: 10,
   },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "800",
+  cardTitle: {
     color: "#0F294A",
-    letterSpacing: -0.4,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 2,
   },
-  orDividerContainer: {
+  cardSubtitle: {
+    color: "#64748B",
+    fontSize: 12,
+  },
+  dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 4,
+    gap: 12,
+    marginVertical: 2,
   },
-  orLine: {
+  dividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: "#E2E8F0",
   },
-  orText: {
+  dividerText: {
+    color: "#94A3B8",
     fontSize: 12,
     fontWeight: "700",
-    color: "#94A3B8",
-    marginHorizontal: 12,
+  },
+  matrixContainer: {
+    gap: 10,
+    marginTop: 4,
+  },
+  dropdownHeader: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  matrixLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#64748B",
     letterSpacing: 0.5,
+    marginTop: 6,
+  },
+  matrixList: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  matrixItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  matrixItemSelected: {
+    backgroundColor: "#F8FAFC",
+  },
+  matrixItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#334155",
+    fontWeight: "500",
+  },
+  matrixItemTextSelected: {
+    color: "#0F294A",
+    fontWeight: "700",
+  },
+  actions: {
+    gap: 12,
+    marginTop: 10,
   },
   primaryButton: {
-    marginTop: 8,
-    backgroundColor: "#06162E",
-  },
-  saveDraftButton: {
+    backgroundColor: "#0F294A",
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    gap: 8,
   },
-  saveDraftText: {
-    fontSize: 15,
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "700",
-    color: "#0F294A",
+  },
+  secondaryButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: "#475569",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
