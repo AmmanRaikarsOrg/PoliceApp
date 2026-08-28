@@ -1,4 +1,5 @@
 import { apiRequest } from "../api/client";
+import { ENDPOINTS } from "../api/endpoints";
 
 export type DocumentTemplate = {
   id: string;

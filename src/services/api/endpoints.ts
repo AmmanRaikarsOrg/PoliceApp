@@ -8,6 +8,10 @@ export const ENDPOINTS = {
     create: "/cases",
   },
 
+  files: {
+    upload: "/files/upload",
+  },
+
   audio: {
     upload: "/audio",
   },

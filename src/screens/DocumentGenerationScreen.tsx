@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,9 +13,10 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
+import { useDocuments } from "../hooks/useDocuments";
 
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import {
