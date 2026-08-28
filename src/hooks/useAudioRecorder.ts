@@ -95,6 +95,8 @@ export function useAudioRecorder() {
     recordings,
     latestUri: latestRecording?.uri || null,
     start,
+    // pause,
+    // resume,
     stop,
     removeRecording,
     clearRecordings,

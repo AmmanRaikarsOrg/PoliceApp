@@ -1,3 +1,4 @@
+import { File } from "expo-file-system";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -34,11 +35,28 @@ export function AudioRecorder({
     isProcessing,
     recordings,
     start,
+    // pause,
+    // resume,
     stop,
+    latestUri,
     removeRecording,
     clearRecordings,
   } = useAudioRecorder();
+  const [fileSize, setFileSize] = useState<number | null>(null);
+  const uri = latestUri
+  useEffect(() => {
+    if (!uri) {
+      setFileSize(null);
+      return;
+    }
 
+    try {
+      setFileSize(new File(uri).size);
+    } catch (error) {
+      console.error("Failed to read recording file size", error);
+      setFileSize(null);
+    }
+  }, [uri]);
   const recorderState = useAudioRecorderState(recorder, 500);
 
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -47,7 +65,7 @@ export function AudioRecorder({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     let pulseAnimation: Animated.CompositeAnimation;
 
     if (isRecording) {
@@ -479,3 +497,15 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
 });
+
+function formatFileSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return "Unavailable";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(2)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}

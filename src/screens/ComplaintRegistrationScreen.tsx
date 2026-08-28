@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -97,12 +99,16 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+    <ScrollView
       contentContainerStyle={[
         styles.content,
         { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom + 20, 24) },
       ]}
+      keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Complaint Registration</Text>
 
@@ -165,6 +171,7 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
         </Pressable>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
