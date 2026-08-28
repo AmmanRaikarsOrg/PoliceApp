@@ -1,114 +1,104 @@
 import { useState } from "react";
-import {
-  getRecordingPermissionsAsync,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder as useExpoAudioRecorder,
-  RecordingPresets,
-} from "expo-audio";
+import { Alert } from "react-native";
+import { useAudioRecorder as useExpoAudioRecorder, RecordingPresets } from "expo-audio";
+import { configureAudio, requestAudioPermission } from "../services/audio/audioService";
 
-export type RecordingStatus =
-  | "idle"
-  | "recording"
-  | "paused"
-  | "finished";
+export type RecordedAudio = {
+  id: string;
+  uri: string;
+  name: string;
+  duration: number; // in seconds
+  createdAt: string;
+};
 
 export function useAudioRecorder() {
-  const recorder = useExpoAudioRecorder(
-    RecordingPresets.HIGH_QUALITY
-  );
-  const [status, setStatus] = useState<RecordingStatus>("idle");
-  const [uri, setUri] = useState<string | null>(null);
+  const recorder = useExpoAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordings, setRecordings] = useState<RecordedAudio[]>([]);
 
-  const start = async () => {
-    if (status !== "idle" && status !== "finished") {
-      return;
+  const start = async (): Promise<boolean> => {
+    if (recorder.isRecording || isProcessing) {
+      return false;
     }
-
+    setIsProcessing(true);
     try {
-      const permission = await getRecordingPermissionsAsync();
-      const granted = permission.granted
-        ? permission
-        : await requestRecordingPermissionsAsync();
-
-      if (!granted.granted) {
-        console.error("Microphone permission denied");
-        return;
+      const permission = await requestAudioPermission();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Microphone permission is required to record audio. Please enable it in your device settings."
+        );
+        return false;
       }
 
-      await setAudioModeAsync({ allowsRecording: true });
-      setUri(null);
+      await configureAudio();
       await recorder.prepareToRecordAsync();
       recorder.record();
-      setStatus("recording");
-      console.log("Recording started");
+      return true;
     } catch (error) {
-      console.error("Failed to start recording", error);
+      console.error("Failed to start recording:", error);
+      Alert.alert("Recording Error", "Unable to start recording. Please try again.");
+      return false;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const pause = () => {
-    if (status !== "recording") {
-      return;
-    }
-
-    try {
-      recorder.pause();
-      setStatus("paused");
-      console.log("Recording paused");
-    } catch (error) {
-      console.error("Failed to pause recording", error);
-    }
-  };
-
-  const resume = () => {
-    if (status !== "paused") {
-      return;
-    }
-
-    try {
-      recorder.record();
-      setStatus("recording");
-      console.log("Recording resumed");
-    } catch (error) {
-      console.error("Failed to resume recording", error);
-    }
-  };
-
-  const stop = async () => {
-    if (status !== "recording" && status !== "paused") {
+  const stop = async (save: boolean = true): Promise<RecordedAudio | null> => {
+    if (!recorder.isRecording || isProcessing) {
       return null;
     }
-
+    setIsProcessing(true);
     try {
       await recorder.stop();
       const finalUri = recorder.uri;
 
-      if (!finalUri) {
-        console.error("Recording finished without a final URI");
+      if (!save || !finalUri) {
         return null;
       }
 
-      setUri(finalUri);
-      setStatus("finished");
-      console.log("Recording finished");
-      console.log(`Final URI: ${finalUri}`);
-      return finalUri;
+      const durationSecs = Math.max(1, Math.round((recorder.currentTime || 1)));
+
+      const newRecording: RecordedAudio = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        uri: finalUri,
+        name: `Recording ${recordings.length + 1}`,
+        duration: durationSecs,
+        createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setRecordings((prev) => [...prev, newRecording]);
+      return newRecording;
     } catch (error) {
-      console.error("Failed to finish recording", error);
+      console.error("Failed to stop recording:", error);
+      Alert.alert("Recording Error", "Failed to stop recording cleanly.");
       return null;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
+  const removeRecording = (id: string) => {
+    setRecordings((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const clearRecordings = () => {
+    setRecordings([]);
+  };
+
+  const latestRecording = recordings.length > 0 ? recordings[recordings.length - 1] : null;
+
   return {
     recorder,
-    status,
-    isRecording: status === "recording",
-    isPaused: status === "paused",
-    uri,
+    isRecording: recorder.isRecording,
+    isProcessing,
+    recordings,
+    latestUri: latestRecording?.uri || null,
     start,
     pause,
     resume,
     stop,
+    removeRecording,
+    clearRecordings,
   };
 }

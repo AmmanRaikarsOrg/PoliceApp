@@ -65,7 +65,7 @@ export function AppNavigator() {
         name="DocumentGeneration"
         component={DocumentGenerationScreen}
         options={{
-          title: "Generate Document",
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
