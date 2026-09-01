@@ -75,6 +75,78 @@ export function HomeScreen({ navigation }: Props) {
           });
         }}
       />
+      <Pressable
+        style={{
+          marginTop: 10,
+          padding: 15,
+          position: "absolute",
+          top: 180,
+          left: 24,
+          backgroundColor: "#2B313A",
+          borderRadius: 12,
+        }}
+        onPress={() => {
+          navigation.navigate("MarkdownDocxTest");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Markdown → DOCX
+        </Text>
+      </Pressable>
+      <Pressable
+        style={{
+          marginTop: 10,
+          padding: 15,
+          position: "absolute",
+          top: 250,
+          left: 24,
+          backgroundColor: "#333a2b",
+          borderRadius: 15,
+        }}
+        onPress={() => {
+          navigation.navigate("MarkdownPreview");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Markdown Preview
+        </Text>
+      </Pressable>
+      <Pressable
+        style={{
+          marginTop: 10,
+          padding: 15,
+          position: "absolute",
+          top: 330,
+          left: 24,
+          backgroundColor: "#2b3a37",
+          borderRadius: 15,
+        }}
+        onPress={() => {
+          navigation.navigate("NudiFontTest");
+        }}
+      >
+        <Text
+          style={{
+            color: "#F4F5F7",
+            textAlign: "center",
+            fontWeight: "700",
+          }}
+        >
+          Test Font Preview
+        </Text>
+      </Pressable>
 
       <CreateCaseModal
         visible={createCaseVisible}
