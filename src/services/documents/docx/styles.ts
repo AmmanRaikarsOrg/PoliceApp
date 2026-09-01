@@ -3,7 +3,7 @@ import {
   Document,
 } from "docx";
 
-export const DOCUMENT_FONT = "NudiE05";
+export const DOCUMENT_FONT = "Nudi 05 e";
 
 export const DOCUMENT_STYLES = {
   normal: {

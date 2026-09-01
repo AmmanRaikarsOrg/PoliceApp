@@ -9,7 +9,9 @@ import {
   BorderStyle,
 } from "docx";
 
-const FONT = "Nudi 05 e";
+import { DOCUMENT_FONT } from "./styles";
+
+const FONT = DOCUMENT_FONT;
 
 const TABLE_WIDTH = 9000;
 

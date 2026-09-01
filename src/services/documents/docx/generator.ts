@@ -17,7 +17,9 @@ import {
   createMarkdownTable,
 } from "./table";
 
-const FONT = "Nudi 05 e";
+import { DOCUMENT_FONT } from "./styles";
+
+const FONT = DOCUMENT_FONT;
 
 function createInlineRuns(
   text: string

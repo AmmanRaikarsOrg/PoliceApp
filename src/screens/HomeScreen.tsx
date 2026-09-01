@@ -75,7 +75,9 @@ export function HomeScreen({ navigation }: Props) {
           });
         }}
       />
-      <Pressable
+
+      {/* TEST FOR DOCX */}
+      {/* <Pressable
         style={{
           marginTop: 10,
           padding: 15,
@@ -146,8 +148,8 @@ export function HomeScreen({ navigation }: Props) {
         >
           Test Font Preview
         </Text>
-      </Pressable>
-
+      </Pressable> */}
+      {/* TEST FOR DOCX */}
       <CreateCaseModal
         visible={createCaseVisible}
         onClose={() => setCreateCaseVisible(false)}
