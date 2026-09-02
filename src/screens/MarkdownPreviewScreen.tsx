@@ -1,45 +1,101 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
+import { Feather } from "@expo/vector-icons";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 
 import { MarkdownViewer } from "../components/documents/MarkdownViewer";
 import { TEST_PANCHANAMA } from "../utils/testMarkdown";
+import { getDocument } from "../services/documents/documentService";
+import { shareDocx } from "../services/documents/docxFileService";
 
-export function MarkdownPreviewScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, "MarkdownPreview">;
+
+export function MarkdownPreviewScreen({ navigation, route }: Props) {
+  const params = route?.params;
   const [fontsLoaded, fontError] = useFonts({
     "Nudi 05 e": require("../assets/fonts/NudiE05.ttf"),
     "NudiE05": require("../assets/fonts/NudiE05.ttf"),
   });
 
-  if (!fontsLoaded && !fontError) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#60A5FA" />
-        <Text style={styles.loadingText}>Loading Nudi font preview...</Text>
-      </View>
-    );
-  }
+  const [contentMarkdown, setContentMarkdown] = useState<string>(
+    params?.markdown || TEST_PANCHANAMA
+  );
+  const [docTitle, setDocTitle] = useState<string>(
+    params?.title || "Document Preview"
+  );
+  const [docSubtitle, setDocSubtitle] = useState<string>(
+    params?.subtitle || "Panchanama (Kannada Case Document)"
+  );
+  const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    if (params?.caseId && params?.documentId && !params.markdown) {
+      getDocument(params.caseId, params.documentId).then((doc) => {
+        if (doc) {
+          setContentMarkdown(doc.markdown);
+          setDocTitle(doc.title);
+          setDocSubtitle(doc.templateName);
+        }
+      });
+    } else if (params?.markdown) {
+      setContentMarkdown(params.markdown);
+      if (params.title) setDocTitle(params.title);
+      if (params.subtitle) setDocSubtitle(params.subtitle);
+    }
+  }, [params]);
+
+  const handleExportDocx = async () => {
+    try {
+      setIsExporting(true);
+      await shareDocx(
+        contentMarkdown,
+        `${docTitle.replace(/[^a-zA-Z0-9]/g, "_")}.docx`
+      );
+    } catch (err) {
+      Alert.alert(
+        "Export Failed",
+        err instanceof Error ? err.message : "Could not export DOCX."
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>
-            Document Preview
-          </Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Nudi 05 e</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title} numberOfLines={1}>
+              {docTitle}
+            </Text>
+            <Text style={styles.subtitle}>{docSubtitle}</Text>
           </View>
-        </View>
 
-        <Text style={styles.subtitle}>
-          Panchanama (Kannada Case Document)
-        </Text>
+          <Pressable
+            style={styles.exportBtn}
+            onPress={handleExportDocx}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Feather name="download" size={15} color="#FFFFFF" />
+                <Text style={styles.exportBtnText}>Export DOCX</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       <MarkdownViewer
@@ -99,6 +155,20 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#8B949E",
     marginTop: 4,
-    fontSize: 14,
+    fontSize: 13,
+  },
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1E40AF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  exportBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

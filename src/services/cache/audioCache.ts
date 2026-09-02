@@ -12,8 +12,8 @@ import type {
 const CACHE_KEY =
   "@case-files/audio-cache";
 
-const CACHE_TTL =
-  10 * 24 * 60 * 60 * 1000;
+// 3 minutes for testing (was 10 days)
+const CACHE_TTL = 3 * 60 * 1000;
 
 async function getCacheIndex(): Promise<AudioCacheIndex> {
   const raw =
@@ -22,11 +22,18 @@ async function getCacheIndex(): Promise<AudioCacheIndex> {
     );
 
   if (!raw) {
+    console.log(
+      "[AudioCache] No cache index found, returning empty index"
+    );
     return {};
   }
 
   try {
-    return JSON.parse(raw);
+    const index = JSON.parse(raw);
+    console.log(
+      `[AudioCache] Loaded cache index with ${Object.keys(index).length} entries`
+    );
+    return index;
   } catch {
     console.warn(
       "Audio cache metadata was corrupted. Resetting."
@@ -43,16 +50,34 @@ async function saveCacheIndex(
     CACHE_KEY,
     JSON.stringify(index)
   );
+  console.log(
+    `[AudioCache] Saved cache index (${Object.keys(index).length} entries)`
+  );
 }
 
 function isExpired(
   audio: CachedAudio,
   now = Date.now()
 ): boolean {
-  return (
-    now - audio.lastAccessedAt >=
-    CACHE_TTL
+  const elapsed =
+    now - audio.lastAccessedAt;
+  const expired = elapsed >= CACHE_TTL;
+  const remainingSecs = Math.max(
+    0,
+    Math.round(
+      (CACHE_TTL - elapsed) / 1000
+    )
   );
+
+  console.log(
+    `[AudioCache] Expiry check for "${audio.filename}" — ` +
+      `elapsed: ${Math.round(elapsed / 1000)}s, ` +
+      `TTL: ${CACHE_TTL / 1000}s, ` +
+      `remaining: ${remainingSecs}s, ` +
+      `expired: ${expired}`
+  );
+
+  return expired;
 }
 
 export async function registerAudio(
@@ -76,6 +101,12 @@ export async function registerAudio(
 
   await saveCacheIndex(index);
 
+  console.log(
+    `[AudioCache] ✅ Registered audio "${audio.filename}" (id: ${audio.id}) ` +
+      `— will expire in ${CACHE_TTL / 1000}s (${CACHE_TTL / 60000} min) ` +
+      `if not accessed`
+  );
+
   return entry;
 }
 
@@ -88,12 +119,18 @@ export async function touchAudio(
   const audio = index[audioId];
 
   if (!audio) {
+    console.log(
+      `[AudioCache] touchAudio: id "${audioId}" not found in cache`
+    );
     return null;
   }
 
   const now = Date.now();
 
   if (isExpired(audio, now)) {
+    console.log(
+      `[AudioCache] ⏰ Audio "${audio.filename}" has expired on touch — removing`
+    );
     await removeAudio(
       audioId,
       index
@@ -105,6 +142,11 @@ export async function touchAudio(
   audio.lastAccessedAt = now;
 
   await saveCacheIndex(index);
+
+  console.log(
+    `[AudioCache] 🔄 Touched audio "${audio.filename}" — timer reset, ` +
+      `new expiry in ${CACHE_TTL / 1000}s`
+  );
 
   return audio;
 }
@@ -125,6 +167,9 @@ export async function touchCase(
     }
 
     if (isExpired(audio, now)) {
+      console.log(
+        `[AudioCache] ⏰ Audio "${audio.filename}" expired during case touch — deleting file`
+      );
       await deleteAudioFile(audio);
 
       delete index[audio.id];
@@ -135,6 +180,10 @@ export async function touchCase(
     }
 
     audio.lastAccessedAt = now;
+
+    console.log(
+      `[AudioCache] 🔄 Touched audio "${audio.filename}" via case touch`
+    );
 
     changed = true;
   }
@@ -153,10 +202,17 @@ async function deleteAudioFile(
 
     if (file.exists) {
       file.delete();
+      console.log(
+        `[AudioCache] 🗑️  Deleted file from disk: ${audio.uri}`
+      );
+    } else {
+      console.log(
+        `[AudioCache] File already missing from disk: ${audio.uri}`
+      );
     }
   } catch (error) {
     console.warn(
-      "Failed to delete audio file:",
+      "[AudioCache] Failed to delete audio file:",
       audio.uri,
       error
     );
@@ -174,8 +230,15 @@ export async function removeAudio(
   const audio = index[audioId];
 
   if (!audio) {
+    console.log(
+      `[AudioCache] removeAudio: id "${audioId}" not found, nothing to remove`
+    );
     return;
   }
+
+  console.log(
+    `[AudioCache] 🗑️  Removing audio "${audio.filename}" (id: ${audioId}) from cache`
+  );
 
   await deleteAudioFile(audio);
 
