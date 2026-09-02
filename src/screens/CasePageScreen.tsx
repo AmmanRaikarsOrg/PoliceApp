@@ -5,71 +5,46 @@ import {
   View,
   ScrollView,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
+import { useCases } from "../hooks/useCases";
+import { useDocuments } from "../hooks/useDocuments";
+import { useAssets } from "../hooks/useAssets";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CasePage">;
 
-type CaseDoc = {
-  id: string;
-  title: string;
-  meta: string;
-  type: string;
-};
-
-const INITIAL_DOCS: CaseDoc[] = [
-  {
-    id: "1",
-    title: "Initial FIR Draft",
-    meta: "Uploaded: Oct 25, 2023 • PDF",
-    type: "PDF",
-  },
-  {
-    id: "2",
-    title: "Witness Statement - J. Doe",
-    meta: "Uploaded: Oct 26, 2023 • DOCX",
-    type: "DOCX",
-  },
-  {
-    id: "3",
-    title: "Crime Scene Evidence Log",
-    meta: "Uploaded: Oct 26, 2023 • PDF",
-    type: "PDF",
-  },
-];
-
 export function CasePageScreen({ navigation, route }: Props) {
-  const { caseId, newDocumentName } = route.params;
+  const { caseId, docType: routeDocType } = route.params;
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"documents" | "audio" | "info">("documents");
-  const [documents, setDocuments] = useState<CaseDoc[]>(INITIAL_DOCS);
+  
+  const docType = routeDocType || "complaint";
+
+  const { fetchCaseById, selectedCase, loading: caseLoading } = useCases();
+  const { documents, loading: docsLoading } = useDocuments(caseId);
+  const { assets, fetchAssets, loading: assetsLoading } = useAssets(caseId, docType);
 
   useEffect(() => {
-    if (newDocumentName) {
-      const formattedDate = new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-      setDocuments((prev) => [
-        {
-          id: String(Date.now()),
-          title: newDocumentName,
-          meta: `Uploaded: ${formattedDate} • PDF`,
-          type: "PDF",
-        },
-        ...prev,
-      ]);
-    }
-  }, [newDocumentName]);
+    fetchCaseById(caseId);
+    fetchAssets();
+  }, [caseId, fetchCaseById, fetchAssets]);
 
   const handleGenerateDocument = () => {
-    navigation.navigate("DocumentGeneration", { caseId });
+    navigation.navigate("DocumentGeneration", { caseId, docType });
   };
+
+  if (caseLoading && !selectedCase) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0F294A" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -83,7 +58,7 @@ export function CasePageScreen({ navigation, route }: Props) {
       <View style={styles.caseHeaderCard}>
         <View style={styles.caseHeaderTop}>
           <View style={styles.caseIdBadge}>
-            <Text style={styles.caseIdText}>{caseId || "CR-2023-0492"}</Text>
+            <Text style={styles.caseIdText}>{selectedCase?.caseNumber || caseId}</Text>
           </View>
           <View style={styles.iconActions}>
             <Pressable style={styles.iconBtn}>
@@ -98,10 +73,10 @@ export function CasePageScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <Text style={styles.caseTitle}>State vs. Doe - Burglary</Text>
+        <Text style={styles.caseTitle}>{selectedCase?.name || selectedCase?.title || "Unknown Case"}</Text>
 
         <View style={styles.statusBadge}>
-          <Text style={styles.statusBadgeText}>Active Investigation</Text>
+          <Text style={styles.statusBadgeText}>{selectedCase?.status?.toUpperCase() || "OPEN"}</Text>
         </View>
       </View>
 
@@ -109,10 +84,7 @@ export function CasePageScreen({ navigation, route }: Props) {
       <View style={styles.detailsCard}>
         <Text style={styles.detailsLabel}>COMPLAINT DETAILS</Text>
         <Text style={styles.detailsText}>
-          On October 12, 2023, officers responded to a reported burglary at 142 Elm St.
-          The homeowner reported forced entry through the rear patio door. Preliminary assessment
-          indicates several high-value electronic items were removed from the premises. Awaiting full
-          inventory from the victim.
+          {selectedCase?.description || selectedCase?.complaintDetails || "No details provided for this case."}
         </Text>
       </View>
 
@@ -147,19 +119,27 @@ export function CasePageScreen({ navigation, route }: Props) {
       {activeTab === "documents" && (
         <View style={styles.docsSection}>
           {documents.map((doc) => (
-            <View key={doc.id} style={styles.docCard}>
+            <View key={doc._id} style={styles.docCard}>
               <View style={styles.docIconBox}>
                 <Feather name="file-text" size={20} color="#0F294A" />
               </View>
               <View style={styles.docInfo}>
                 <Text style={styles.docTitle}>{doc.title}</Text>
-                <Text style={styles.docMeta}>{doc.meta}</Text>
+                <Text style={styles.docMeta}>
+                  Status: {doc.status} • {doc.type || "Markdown"}
+                </Text>
               </View>
               <Pressable hitSlop={10}>
                 <Feather name="more-vertical" size={18} color="#64748B" />
               </Pressable>
             </View>
           ))}
+          {documents.length === 0 && !docsLoading && (
+            <View style={styles.emptyTabContent}>
+              <Feather name="file" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTabText}>No documents generated yet.</Text>
+            </View>
+          )}
 
           <Pressable style={styles.generateButton} onPress={handleGenerateDocument}>
             <Feather name="plus" size={16} color="#0F294A" />
@@ -169,9 +149,29 @@ export function CasePageScreen({ navigation, route }: Props) {
       )}
 
       {activeTab === "audio" && (
-        <View style={styles.emptyTabContent}>
-          <Feather name="mic" size={32} color="#94A3B8" />
-          <Text style={styles.emptyTabText}>No audio recordings attached yet.</Text>
+        <View style={styles.docsSection}>
+          {assets.map((asset) => (
+            <View key={asset._id} style={styles.docCard}>
+              <View style={styles.docIconBox}>
+                <Feather name="music" size={20} color="#0F294A" />
+              </View>
+              <View style={styles.docInfo}>
+                <Text style={styles.docTitle}>{asset.originalFileName}</Text>
+                <Text style={styles.docMeta}>
+                  {asset.source || "Uploaded"} • {(asset.sizeBytes / 1024).toFixed(0)} KB
+                </Text>
+              </View>
+              <Pressable hitSlop={10}>
+                <Feather name="more-vertical" size={18} color="#64748B" />
+              </Pressable>
+            </View>
+          ))}
+          {assets.length === 0 && !assetsLoading && (
+            <View style={styles.emptyTabContent}>
+              <Feather name="mic" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTabText}>No audio recordings attached yet.</Text>
+            </View>
+          )}
         </View>
       )}
 

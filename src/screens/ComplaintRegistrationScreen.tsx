@@ -17,43 +17,48 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import { useAssets } from "../hooks/useAssets";
+import { useDocuments } from "../hooks/useDocuments";
 import {
   configureAudio,
   requestAudioPermission,
 } from "../services/audio/audioService";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import { getInfoAsync } from "expo-file-system/legacy";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "ComplaintRegistration"
 >;
 
-type AttachedAudio = {
-  id: string;
-  name: string;
-  source: "Recorded" | "Uploaded";
-};
-
 export function ComplaintRegistrationScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
   const insets = useSafeAreaInsets();
   const { isRecording, start, stop } = useAudioRecorder();
 
+  const { assets, uploadAsset, loading: assetsLoading } = useAssets(caseId, "complaint");
+  const { generateDocument, loading: docsLoading } = useDocuments(caseId);
+
   const [isPreparing, setIsPreparing] = useState(false);
-  const [recordings, setRecordings] = useState<AttachedAudio[]>([]);
 
   const handleRecordPress = async () => {
     if (isRecording) {
       const uri = await stop();
       if (uri) {
-        setRecordings((prev) => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            name: `Complaint Recording ${prev.length + 1}`,
-            source: "Recorded",
-          },
-        ]);
+        try {
+          const fileInfo = await getInfoAsync(uri.uri);
+          const size = fileInfo.exists ? fileInfo.size : 0;
+          await uploadAsset(
+            uri.uri,
+            uri.name || `Recording-${Date.now()}.m4a`,
+            "audio/m4a",
+            size,
+            uri.duration
+          );
+        } catch (error: any) {
+          Alert.alert("Upload Error", `Failed to upload recording: ${error.message}`);
+        }
       }
       return;
     }
@@ -82,20 +87,27 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
       });
 
       if (!res.canceled && res.assets) {
-        const newAudios: AttachedAudio[] = res.assets.map((asset, i) => ({
-          id: `${Date.now()}-${i}`,
-          name: asset.name,
-          source: "Uploaded",
-        }));
-        setRecordings((prev) => [...prev, ...newAudios]);
+        for (const asset of res.assets) {
+          await uploadAsset(
+            asset.uri,
+            asset.name,
+            asset.mimeType || "audio/mpeg",
+            asset.size || 0
+          );
+        }
       }
     } catch {
       Alert.alert("Error", "Could not upload audio file.");
     }
   };
 
-  const handleProcessAudio = () => {
-    navigation.replace("CasePage", { caseId });
+  const handleProcessAudio = async () => {
+    try {
+      await generateDocument({ docType: "complaint" });
+      navigation.replace("CasePage", { caseId });
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate document.");
+    }
   };
 
   return (
@@ -146,14 +158,14 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
       </Pressable>
 
       {/* Attached Audio List */}
-      {recordings.length > 0 && (
+      {assets.length > 0 && (
         <View style={styles.attachedContainer}>
-          <Text style={styles.attachedHeader}>Attached Files ({recordings.length})</Text>
-          {recordings.map((item) => (
-            <View key={item.id} style={styles.audioRow}>
+          <Text style={styles.attachedHeader}>Attached Files ({assets.length})</Text>
+          {assets.map((item) => (
+            <View key={item._id} style={styles.audioRow}>
               <Feather name="music" size={16} color="#0F294A" />
-              <Text style={styles.audioName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.audioSource}>{item.source}</Text>
+              <Text style={styles.audioName} numberOfLines={1}>{item.originalFileName}</Text>
+              <Text style={styles.audioSource}>{item.source || "Uploaded"}</Text>
             </View>
           ))}
         </View>
@@ -161,9 +173,19 @@ export function ComplaintRegistrationScreen({ navigation, route }: Props) {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Pressable style={styles.primaryButton} onPress={handleProcessAudio}>
-          <Text style={styles.primaryButtonText}>Process Audio</Text>
-          <Feather name="arrow-right" size={18} color="#FFFFFF" />
+        <Pressable 
+          style={[styles.primaryButton, docsLoading && { opacity: 0.7 }]} 
+          onPress={handleProcessAudio}
+          disabled={docsLoading}
+        >
+          {docsLoading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Text style={styles.primaryButtonText}>Process Audio</Text>
+              <Feather name="arrow-right" size={18} color="#FFFFFF" />
+            </>
+          )}
         </Pressable>
 
         <Pressable style={styles.secondaryButton} onPress={handleProcessAudio}>

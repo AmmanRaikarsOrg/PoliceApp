@@ -10,37 +10,36 @@
 // 1. User & Authentication Models
 // ----------------------------------------------------------------------------
 
-export type UserRole = "OFFICER" | "INVESTIGATOR" | "INSPECTOR" | "ADMIN";
+export type UserRole = "officer" | "admin" | "supervisor";
 
 export type User = {
-  id: string;
   _id?: string;
+  id: string;
   name: string;
-  badgeNumber: string;
-  rank: string;
-  station: string;
   email: string;
-  phone?: string;
-  avatarUrl?: string;
+  policeStationId: string;
   role: UserRole;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AuthResponse = {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   user: User;
-  expiresIn?: number;
 };
 
 export type LoginPayload = {
-  username: string;
-  password?: string;
+  email: string;
+  password: string;
 };
 
 // ----------------------------------------------------------------------------
 // 2. Case Models (Matching /api/cases)
 // ----------------------------------------------------------------------------
 
-export type CaseStatus = "open" | "ongoing" | "closed" | "OPEN" | "ONGOING" | "CLOSED";
+export type CaseStatus = "open" | "closed" | "deleted" | "OPEN" | "CLOSED" | "DELETED";
 
 /**
  * Backend Case response shape as returned by MongoDB / Express API
@@ -54,7 +53,7 @@ export type BackendCase = {
   location?: string | null;
   description?: string | null;
   dateOfIncident?: string | null;
-  status: "open" | "ongoing" | "closed";
+  status: "open" | "closed" | "deleted";
   createdAt: string;
   updatedAt: string;
   __v?: number;
@@ -135,7 +134,7 @@ export type PaginatedResponse<T> = {
 // 3. Assets & Audio Models (Matching /api/cases/:caseId/complaint/assets)
 // ----------------------------------------------------------------------------
 
-export type DocType = "complaint" | "fir" | "panchanama" | "witness" | "notice" | "chargesheet";
+export type DocType = "complaint" | "panchanamas" | "firs" | "statements" | "reports" | "letters";
 
 export type GetUploadUrlPayload = {
   originalFileName: string;
@@ -268,4 +267,3 @@ export type Recording = CaseAsset;
 export type Document = BackendDoc;
 export type GeneratedDocument = BackendDoc;
 export type CaseAudio = CaseAsset;
-

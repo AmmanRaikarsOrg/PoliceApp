@@ -39,11 +39,11 @@ export function MarkdownPreviewScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (params?.caseId && params?.documentId && !params.markdown) {
-      getDocument(params.caseId, params.documentId).then((doc) => {
+      getDocument(params.caseId, "complaint", params.documentId).then((doc) => {
         if (doc) {
-          setContentMarkdown(doc.markdown);
-          setDocTitle(doc.title);
-          setDocSubtitle(doc.templateName);
+          setContentMarkdown(doc.markdown || TEST_PANCHANAMA);
+          setDocTitle(doc.title || "Document Preview");
+          setDocSubtitle(doc.templateName || "Document");
         }
       });
     } else if (params?.markdown) {

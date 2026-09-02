@@ -17,12 +17,17 @@ import { CaseSearchBar } from "../components/cases/CaseSearchBar";
 import { CaseStatusFilter } from "../components/cases/CaseStatusFilter";
 import { CaseTypeFilter } from "../components/cases/CaseTypeFilter";
 import { CreateCaseModal } from "../components/cases/CreateCaseModal";
+import { useCases } from "../hooks/useCases";
+import { useAuth } from "../hooks/useAuth";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
   const [createCaseVisible, setCreateCaseVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  
+  const { user } = useAuth();
+  const { cases, loading, refreshCases } = useCases();
 
   const handleCaseCreated = (caseId: string) => {
     setCreateCaseVisible(false);
@@ -35,10 +40,16 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }]}>
       <View style={styles.header}>
-        <Image
-          source={{ uri: "https://i.pravatar.cc/150?img=68" }}
-          style={styles.profile}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Image
+            source={{ uri: "https://i.pravatar.cc/150?img=68" }}
+            style={styles.profile}
+          />
+          <View>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: "#0F172A" }}>{user?.name || "Officer"}</Text>
+            <Text style={{ fontSize: 13, color: "#64748B" }}>Station {user?.policeStationId || "N/A"}</Text>
+          </View>
+        </View>
         <Pressable>
           <Feather name="bell" size={24} color="#0F172A" />
         </Pressable>
@@ -69,6 +80,9 @@ export function HomeScreen({ navigation }: Props) {
       </View>
 
       <CaseGrid
+        cases={cases}
+        loading={loading}
+        onRefresh={refreshCases}
         onCasePress={(caseId) => {
           navigation.navigate("CasePage", {
             caseId,
@@ -76,80 +90,6 @@ export function HomeScreen({ navigation }: Props) {
         }}
       />
 
-      {/* TEST FOR DOCX */}
-      {/* <Pressable
-        style={{
-          marginTop: 10,
-          padding: 15,
-          position: "absolute",
-          top: 180,
-          left: 24,
-          backgroundColor: "#2B313A",
-          borderRadius: 12,
-        }}
-        onPress={() => {
-          navigation.navigate("MarkdownDocxTest");
-        }}
-      >
-        <Text
-          style={{
-            color: "#F4F5F7",
-            textAlign: "center",
-            fontWeight: "700",
-          }}
-        >
-          Test Markdown → DOCX
-        </Text>
-      </Pressable>
-      <Pressable
-        style={{
-          marginTop: 10,
-          padding: 15,
-          position: "absolute",
-          top: 250,
-          left: 24,
-          backgroundColor: "#333a2b",
-          borderRadius: 15,
-        }}
-        onPress={() => {
-          navigation.navigate("MarkdownPreview");
-        }}
-      >
-        <Text
-          style={{
-            color: "#F4F5F7",
-            textAlign: "center",
-            fontWeight: "700",
-          }}
-        >
-          Test Markdown Preview
-        </Text>
-      </Pressable>
-      <Pressable
-        style={{
-          marginTop: 10,
-          padding: 15,
-          position: "absolute",
-          top: 330,
-          left: 24,
-          backgroundColor: "#2b3a37",
-          borderRadius: 15,
-        }}
-        onPress={() => {
-          navigation.navigate("NudiFontTest");
-        }}
-      >
-        <Text
-          style={{
-            color: "#F4F5F7",
-            textAlign: "center",
-            fontWeight: "700",
-          }}
-        >
-          Test Font Preview
-        </Text>
-      </Pressable> */}
-      {/* TEST FOR DOCX */}
       <CreateCaseModal
         visible={createCaseVisible}
         onClose={() => setCreateCaseVisible(false)}

@@ -11,9 +11,11 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from 'expo-file-system';
 
 // Storage key for authentication token
 export const AUTH_TOKEN_KEY = "@police_app_auth_token";
+export const REFRESH_TOKEN_KEY = "@police_app_refresh_token";
 
 // Base API URL from Expo environment or localhost
 const API_BASE_URL =
@@ -21,12 +23,13 @@ const API_BASE_URL =
 
 // Toggle to force mock mode if desired (default: false, falls back gracefully)
 const FORCE_MOCK_MODE =
-  process.env.EXPO_PUBLIC_USE_MOCK_API === "true" || !process.env.EXPO_PUBLIC_API_URL;
+  process.env.EXPO_PUBLIC_USE_MOCK_API === "true";
 
 /**
  * Global token cache in memory for fast access
  */
 let inMemoryToken: string | null = null;
+let inMemoryRefreshToken: string | null = null;
 
 export function setAuthToken(token: string | null): void {
   inMemoryToken = token;
@@ -50,6 +53,60 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
+export function setRefreshToken(token: string | null): void {
+  inMemoryRefreshToken = token;
+  if (token) {
+    AsyncStorage.setItem(REFRESH_TOKEN_KEY, token).catch(() => {});
+  } else {
+    AsyncStorage.removeItem(REFRESH_TOKEN_KEY).catch(() => {});
+  }
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+  if (inMemoryRefreshToken) {
+    return inMemoryRefreshToken;
+  }
+  try {
+    const stored = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    inMemoryRefreshToken = stored;
+    return stored;
+  } catch {
+    return null;
+  }
+}
+
+export async function refreshAccessToken(): Promise<string> {
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) throw new Error("No refresh token available");
+
+  const url = `${API_BASE_URL.replace(/\/$/, "")}/auth/refresh`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh token");
+  }
+
+  const json = await response.json();
+  const data = (json && typeof json === "object" && "success" in json && "data" in json) ? json.data : json;
+  
+  if (data?.accessToken) {
+    setAuthToken(data.accessToken);
+    if (data.refreshToken) {
+      setRefreshToken(data.refreshToken);
+    }
+    return data.accessToken;
+  }
+  
+  throw new Error("Invalid refresh response");
+}
+
 /**
  * Options for apiRequest
  */
@@ -66,6 +123,10 @@ export type ApiRequestOptions<T> = RequestInit & {
    * Query parameters object: { status: 'OPEN', page: 1 } -> ?status=OPEN&page=1
    */
   queryParams?: Record<string, string | number | boolean | undefined | null>;
+  /**
+   * Internal flag for retry after refresh
+   */
+  _isRetry?: boolean;
 };
 
 /**
@@ -77,7 +138,7 @@ export async function apiRequest<T>(
   endpoint: string,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  const { mockFallback, timeoutMs = 8000, queryParams, ...fetchOptions } =
+  const { mockFallback, timeoutMs = 8000, queryParams, _isRetry, ...fetchOptions } =
     options || {};
 
   // If force mock mode is active and a mock provider is given, use it immediately
@@ -126,6 +187,14 @@ export async function apiRequest<T>(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      if (response.status === 401 && !_isRetry) {
+        try {
+          await refreshAccessToken();
+          return await apiRequest<T>(endpoint, { ...options, _isRetry: true });
+        } catch (refreshErr) {
+          throw new Error(`API error (401) and token refresh failed`);
+        }
+      }
       throw new Error(`API error (${response.status}): ${response.statusText}`);
     }
 
@@ -156,4 +225,17 @@ export async function apiRequest<T>(
 
     throw error;
   }
-}
+}
+
+export async function apiUpload(uploadUrl: string, fileUri: string, mimeType: string): Promise<void> {
+  const uploadResult = await FileSystem.uploadAsync(uploadUrl, fileUri, {
+    httpMethod: 'PUT',
+    headers: {
+      'Content-Type': mimeType,
+    },
+    uploadType: 1, // FileSystem.FileSystemUploadType.BINARY_CONTENT
+  });
+  if (uploadResult.status < 200 || uploadResult.status >= 300) {
+    throw new Error(`Upload failed with status ${uploadResult.status}`);
+  }
+}

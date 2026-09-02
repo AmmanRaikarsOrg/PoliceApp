@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Image,
@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useDocuments } from "../hooks/useDocuments";
+import { useAssets } from "../hooks/useAssets";
 
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 import {
@@ -21,43 +22,55 @@ import {
   requestAudioPermission,
 } from "../services/audio/audioService";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import { getInfoAsync } from "expo-file-system/legacy";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "DocumentGeneration"
 >;
 
-type CaseFileOption = {
-  id: string;
-  title: string;
-  icon: keyof typeof Feather.glyphMap;
-  selected: boolean;
-};
-
 export function DocumentGenerationScreen({ navigation, route }: Props) {
   const { caseId } = route.params;
   const insets = useSafeAreaInsets();
   const { isRecording, start, stop } = useAudioRecorder();
 
+  const { templates, fetchTemplates, generateDocument, loading: docsLoading } = useDocuments(caseId);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];
+  const selectedDocType = selectedTemplate?.code || "complaint";
+
+  const { uploadAsset, loading: assetsLoading } = useAssets(caseId, selectedDocType);
+
   const [isPreparing, setIsPreparing] = useState(false);
-  const [caseFiles, setCaseFiles] = useState<CaseFileOption[]>([
-    { id: "1", title: "Complaint Form", icon: "file-text", selected: true },
-    { id: "2", title: "First Information Report (FIR)", icon: "file", selected: false },
-    { id: "3", title: "Panchanama / Seizure Memo", icon: "check-square", selected: false },
-    { id: "4", title: "Witness Statements", icon: "users", selected: false },
-  ]);
 
   const toggleFile = (id: string) => {
-    setCaseFiles((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, selected: !item.selected } : item
-      )
-    );
+    setSelectedTemplateId(id);
   };
 
   const handleRecordPress = async () => {
     if (isRecording) {
-      await stop();
+      const uri = await stop();
+      if (uri) {
+        try {
+          const fileInfo = await getInfoAsync(uri.uri);
+          const size = fileInfo.exists ? fileInfo.size : 0;
+          await uploadAsset(
+            uri.uri,
+            uri.name || `Recording-${Date.now()}.m4a`,
+            "audio/m4a",
+            size,
+            uri.duration
+          );
+        } catch (error: any) {
+          Alert.alert("Upload Error", `Failed to upload recording: ${error.message}`);
+        }
+      }
       return;
     }
 
@@ -79,20 +92,38 @@ export function DocumentGenerationScreen({ navigation, route }: Props) {
 
   const handleUploadPress = async () => {
     try {
-      await DocumentPicker.getDocumentAsync({
+      const res = await DocumentPicker.getDocumentAsync({
         type: "audio/*",
       });
+      if (!res.canceled && res.assets) {
+        for (const asset of res.assets) {
+          await uploadAsset(
+            asset.uri,
+            asset.name,
+            asset.mimeType || "audio/mpeg",
+            asset.size || 0
+          );
+        }
+      }
     } catch {
       // Handled silently
     }
   };
 
-  const handleProcessAudio = () => {
-    const selectedFile = caseFiles.find((f) => f.selected)?.title || "Generated Document";
-    navigation.replace("CasePage", {
-      caseId,
-      newDocumentName: selectedFile,
-    });
+  const handleProcessAudio = async () => {
+    try {
+      if (!selectedTemplate) return;
+      await generateDocument({ 
+        templateId: selectedTemplate.id, 
+        docType: selectedTemplate.code as any 
+      });
+      navigation.replace("CasePage", {
+        caseId,
+        docType: selectedTemplate.code,
+      });
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate document.");
+    }
   };
 
   return (
@@ -148,23 +179,26 @@ export function DocumentGenerationScreen({ navigation, route }: Props) {
         <Text style={styles.matrixLabel}>AVAILABLE CASE FILES MATRIX</Text>
 
         <View style={styles.matrixList}>
-          {caseFiles.map((item) => (
-            <Pressable
-              key={item.id}
-              style={[styles.matrixItem, item.selected && styles.matrixItemSelected]}
-              onPress={() => toggleFile(item.id)}
-            >
-              <Feather name={item.icon} size={18} color={item.selected ? "#0F294A" : "#64748B"} />
-              <Text style={[styles.matrixItemText, item.selected && styles.matrixItemTextSelected]}>
-                {item.title}
-              </Text>
-              <Feather
-                name={item.selected ? "check" : "chevron-right"}
-                size={16}
-                color={item.selected ? "#0F294A" : "#94A3B8"}
-              />
-            </Pressable>
-          ))}
+          {templates.map((item) => {
+            const isSelected = item.id === selectedTemplateId || (!selectedTemplateId && item.id === templates[0]?.id);
+            return (
+              <Pressable
+                key={item.id}
+                style={[styles.matrixItem, isSelected && styles.matrixItemSelected]}
+                onPress={() => toggleFile(item.id)}
+              >
+                <Feather name={item.icon as any || "file-text"} size={18} color={isSelected ? "#0F294A" : "#64748B"} />
+                <Text style={[styles.matrixItemText, isSelected && styles.matrixItemTextSelected]}>
+                  {item.name}
+                </Text>
+                <Feather
+                  name={isSelected ? "check" : "chevron-right"}
+                  size={16}
+                  color={isSelected ? "#0F294A" : "#94A3B8"}
+                />
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 

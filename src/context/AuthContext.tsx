@@ -1,39 +1,55 @@
-import React, {
-  createContext,
-  ReactNode,
-  useState,
-} from "react";
+import React, { createContext, ReactNode, useEffect, useState } from "react";
+import { User, LoginPayload } from "../utils/types";
+import * as authService from "../services/auth/authService";
+import { getAuthToken } from "../services/api/client";
 
 type AuthContextValue = {
-  user: unknown | null;
+  user: User | null;
   isAuthenticated: boolean;
-  login: (user: unknown) => void;
-  logout: () => void;
+  loading: boolean;
+  login: (payload: LoginPayload) => Promise<void>;
+  logout: () => Promise<void>;
 };
 
-export const AuthContext =
-  createContext<AuthContextValue>({
-    user: null,
-    isAuthenticated: false,
-    login: () => {},
-    logout: () => {},
-  });
+export const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  isAuthenticated: false,
+  loading: true,
+  login: async () => {},
+  logout: async () => {},
+});
 
-type Props = {
-  children: ReactNode;
-};
+type Props = { children: ReactNode };
 
-export function AuthProvider({
-  children,
-}: Props) {
-  const [user, setUser] =
-    useState<unknown | null>(null);
+export function AuthProvider({ children }: Props) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (loggedInUser: unknown) => {
-    setUser(loggedInUser);
+  // Auto-login on mount: check for stored token and fetch profile
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await getAuthToken();
+        if (token) {
+          const profile = await authService.getProfile();
+          setUser({ ...profile, id: profile.id || (profile as any)._id });
+        }
+      } catch (error) {
+        console.warn("Auto-login failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const login = async (payload: LoginPayload) => {
+    const result = await authService.login(payload);
+    const u = result.user;
+    setUser({ ...u, id: u.id || (u as any)._id });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await authService.logout();
     setUser(null);
   };
 
@@ -42,6 +58,7 @@ export function AuthProvider({
       value={{
         user,
         isAuthenticated: user !== null,
+        loading,
         login,
         logout,
       }}

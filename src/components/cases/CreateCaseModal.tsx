@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Input } from "../common/Input";
 import { Button } from "../common/Button";
+import { useCases } from "../../hooks/useCases";
 
 type Props = {
   visible: boolean;
@@ -23,19 +24,30 @@ export function CreateCaseModal({
 }: Props) {
   const [caseName, setCaseName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState("");
+  const [location, setLocation] = useState("");
+  const [firNumber, setFirNumber] = useState("");
   const [date, setDate] = useState("");
   const insets = useSafeAreaInsets();
+  
+  const { createNewCase } = useCases();
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!caseName.trim()) {
       return;
     }
 
-    // Backend case creation will go here.
-    const caseId = "temporary-case-id";
-
-    onCaseCreated(caseId);
+    try {
+      const newCase = await createNewCase({
+        title: caseName,
+        description: description,
+        location,
+        firNumber,
+        date
+      });
+      onCaseCreated(newCase.id);
+    } catch (error) {
+      console.error("Failed to create case:", error);
+    }
   };
 
   return (
@@ -75,10 +87,17 @@ export function CreateCaseModal({
           />
 
           <Input
-            label="Case Type"
-            value={type}
-            onChangeText={setType}
-            placeholder="Case type"
+            label="Location"
+            value={location}
+            onChangeText={setLocation}
+            placeholder="Location"
+          />
+
+          <Input
+            label="FIR Number"
+            value={firNumber}
+            onChangeText={setFirNumber}
+            placeholder="FIR Number"
           />
 
           <Input

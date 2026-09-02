@@ -1,17 +1,8 @@
-/**
- * ============================================================================
- * Case Management Hook
- * ============================================================================
- * Stateful hook providing cases list, filtered searches, case detail loading,
- * and case creation/update actions.
- */
-
 import { useCallback, useEffect, useState } from "react";
 import {
   Case,
   CaseDetails,
   CaseFilterParams,
-  CaseStatus,
   CreateCasePayload,
   UpdateCasePayload,
 } from "../utils/types";
@@ -25,13 +16,10 @@ import {
 
 export function useCases(initialFilters?: CaseFilterParams) {
   const [cases, setCases] = useState<Case[]>([]);
-  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fetch cases with given filters.
-   */
   const fetchCases = useCallback(
     async (filters?: CaseFilterParams) => {
       try {
@@ -52,9 +40,6 @@ export function useCases(initialFilters?: CaseFilterParams) {
     []
   );
 
-  /**
-   * Fetch full details for a single case by ID.
-   */
   const fetchCaseById = useCallback(async (caseId: string) => {
     try {
       setLoading(true);
@@ -72,9 +57,6 @@ export function useCases(initialFilters?: CaseFilterParams) {
     }
   }, []);
 
-  /**
-   * Create a new case and add it to the top of the local state.
-   */
   const createNewCase = useCallback(
     async (payload: CreateCasePayload): Promise<Case> => {
       try {
@@ -95,9 +77,6 @@ export function useCases(initialFilters?: CaseFilterParams) {
     []
   );
 
-  /**
-   * Update an existing case status or metadata.
-   */
   const updateExistingCase = useCallback(
     async (caseId: string, payload: UpdateCasePayload): Promise<Case> => {
       try {
@@ -123,24 +102,19 @@ export function useCases(initialFilters?: CaseFilterParams) {
     [selectedCase]
   );
 
-  /**
-   * Delete a case.
-   */
   const removeCase = useCallback(
     async (caseId: string): Promise<boolean> => {
       try {
         setLoading(true);
         setError(null);
-        const success = await deleteCase(caseId);
-        if (success) {
-          setCases((prev) =>
-            prev.filter((c) => c.id !== caseId && c.caseNumber !== caseId)
-          );
-          if (selectedCase && (selectedCase.id === caseId || selectedCase.caseNumber === caseId)) {
-            setSelectedCase(null);
-          }
+        await deleteCase(caseId);
+        setCases((prev) =>
+          prev.filter((c) => c.id !== caseId && c.caseNumber !== caseId)
+        );
+        if (selectedCase && (selectedCase.id === caseId || selectedCase.caseNumber === caseId)) {
+          setSelectedCase(null);
         }
-        return success;
+        return true;
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Failed to delete case";
@@ -155,7 +129,7 @@ export function useCases(initialFilters?: CaseFilterParams) {
 
   useEffect(() => {
     fetchCases(initialFilters);
-  }, [fetchCases]);
+  }, [fetchCases, initialFilters]);
 
   return {
     cases,
@@ -169,4 +143,4 @@ export function useCases(initialFilters?: CaseFilterParams) {
     deleteCase: removeCase,
     refreshCases: () => fetchCases(initialFilters),
   };
-}
+}
