@@ -10,6 +10,10 @@ export type CachedAudio = {
   createdAt: number;
 
   lastAccessedAt: number;
+
+  sizeBytes?: number;
+
+  durationSec?: number | null;
 };
 
 export type AudioCacheIndex = Record<

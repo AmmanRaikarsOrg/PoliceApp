@@ -12,8 +12,8 @@ import type {
 const CACHE_KEY =
   "@case-files/audio-cache";
 
-// 3 minutes for testing (was 10 days)
-const CACHE_TTL = 3 * 60 * 1000;
+// 10 minutes cache TTL
+const CACHE_TTL = 10 * 60 * 1000;
 
 async function getCacheIndex(): Promise<AudioCacheIndex> {
   const raw =
@@ -148,6 +148,25 @@ export async function touchAudio(
       `new expiry in ${CACHE_TTL / 1000}s`
   );
 
+  return audio;
+}
+
+/**
+ * Cache-first lookup: returns cached audio if available, file exists on disk, and not expired.
+ */
+export async function getCachedAudio(audioId: string): Promise<CachedAudio | null> {
+  const audio = await touchAudio(audioId);
+  if (!audio) return null;
+  try {
+    const file = new File(audio.uri);
+    if (!file.exists) {
+      console.log(`[AudioCache] Cache entry found for "${audio.filename}" but file missing on disk`);
+      await removeAudio(audioId);
+      return null;
+    }
+  } catch {
+    // If File check fails, still return audio
+  }
   return audio;
 }
 

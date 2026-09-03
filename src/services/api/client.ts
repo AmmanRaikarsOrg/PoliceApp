@@ -11,7 +11,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from 'expo-file-system';
+import { uploadAsync, FileSystemUploadType } from "expo-file-system/legacy";
 
 // Storage key for authentication token
 export const AUTH_TOKEN_KEY = "@police_app_auth_token";
@@ -195,7 +195,21 @@ export async function apiRequest<T>(
           throw new Error(`API error (401) and token refresh failed`);
         }
       }
-      throw new Error(`API error (${response.status}): ${response.statusText}`);
+
+      let errorMsg = response.statusText || `Status ${response.status}`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson) {
+          errorMsg = errorJson.error || errorJson.message || JSON.stringify(errorJson);
+        }
+      } catch {
+        try {
+          const text = await response.text();
+          if (text) errorMsg = text;
+        } catch {}
+      }
+
+      throw new Error(`API error (${response.status}): ${errorMsg}`);
     }
 
     const json = await response.json();
@@ -228,14 +242,15 @@ export async function apiRequest<T>(
 }
 
 export async function apiUpload(uploadUrl: string, fileUri: string, mimeType: string): Promise<void> {
-  const uploadResult = await FileSystem.uploadAsync(uploadUrl, fileUri, {
-    httpMethod: 'PUT',
+  const uploadResult = await uploadAsync(uploadUrl, fileUri, {
+    httpMethod: "PUT",
     headers: {
-      'Content-Type': mimeType,
+      "Content-Type": mimeType,
     },
-    uploadType: 1, // FileSystem.FileSystemUploadType.BINARY_CONTENT
+    uploadType: FileSystemUploadType.BINARY_CONTENT,
   });
   if (uploadResult.status < 200 || uploadResult.status >= 300) {
-    throw new Error(`Upload failed with status ${uploadResult.status}`);
+    const errorDetail = uploadResult.body ? ` - ${uploadResult.body}` : "";
+    throw new Error(`Storage upload failed with status ${uploadResult.status}${errorDetail}`);
   }
 }

@@ -176,6 +176,8 @@ export type CaseAsset = {
   uri?: string;
   source?: "Recorded" | "Uploaded";
   transcription?: string;
+  uploadStatus?: "uploading" | "uploaded" | "error";
+  isFetching?: boolean;
 };
 
 export type AssetDownloadResponse = {

@@ -68,7 +68,8 @@ export async function generateDocument(
   docType: string = "complaint",
   payload?: GenerateDocumentPayload
 ): Promise<BackendDoc> {
-  const ep = docEndpoint(caseId, docType);
+  const effectiveDocType = payload?.docType || docType;
+  const ep = docEndpoint(caseId, effectiveDocType);
   const raw = await apiRequest<BackendDoc>(ep.generate, {
     method: "POST",
     body: payload ? JSON.stringify(payload) : undefined,

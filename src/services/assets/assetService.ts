@@ -14,6 +14,56 @@ import {
   GetUploadUrlPayload,
 } from "../../utils/types";
 
+/**
+ * Backend-supported audio MIME types (from backend utils/validate.js)
+ */
+export const ALLOWED_AUDIO_MIME_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/ogg",
+  "audio/webm",
+  "audio/aac",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/flac",
+];
+
+/**
+ * Normalizes any incoming MIME type or file extension to an allowed backend MIME type.
+ * e.g., 'audio/m4a' -> 'audio/x-m4a', 'Recording-123.m4a' -> 'audio/x-m4a'
+ */
+export function normalizeAudioMimeType(
+  mimeType?: string | null,
+  fileName?: string | null
+): string {
+  const clean = mimeType?.toLowerCase().trim();
+  if (clean === "audio/m4a") return "audio/x-m4a";
+  if (clean && ALLOWED_AUDIO_MIME_TYPES.includes(clean)) return clean;
+
+  const ext = fileName?.split(".").pop()?.toLowerCase();
+  if (ext === "m4a") return "audio/x-m4a";
+  if (ext === "mp3") return "audio/mp3";
+  if (ext === "wav") return "audio/wav";
+  if (ext === "aac") return "audio/aac";
+  if (ext === "ogg") return "audio/ogg";
+  if (ext === "webm") return "audio/webm";
+  if (ext === "mp4") return "audio/mp4";
+  if (ext === "flac") return "audio/flac";
+
+  return "audio/x-m4a";
+}
+
+/** Ensure CaseAsset has both id and _id, and a readable name */
+function normalizeAsset(raw: CaseAsset): CaseAsset {
+  return {
+    ...raw,
+    id: raw.id || raw._id,
+    name: raw.name || raw.label || raw.originalFileName,
+  };
+}
+
 /** Build the correct endpoint path based on docType */
 function assetEndpoint(caseId: string, docType: string) {
   if (docType === "complaint") {
@@ -47,9 +97,14 @@ export async function getUploadUrl(
   payload: GetUploadUrlPayload
 ): Promise<AssetUploadUrlResponse> {
   const ep = assetEndpoint(caseId, docType);
+  const normalizedMime = normalizeAudioMimeType(payload.mimeType, payload.originalFileName);
+
   return apiRequest<AssetUploadUrlResponse>(ep.uploadUrl, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      originalFileName: payload.originalFileName,
+      mimeType: normalizedMime,
+    }),
   });
 }
 
@@ -73,10 +128,22 @@ export async function confirmAssetUpload(
   payload: ConfirmAssetUploadPayload
 ): Promise<CaseAsset> {
   const ep = assetEndpoint(caseId, docType);
-  return apiRequest<CaseAsset>(ep.confirm, {
+  const normalizedMime = normalizeAudioMimeType(payload.mimeType, payload.originalFileName);
+  const validSize =
+    typeof payload.sizeBytes === "number" && payload.sizeBytes > 0
+      ? Math.round(payload.sizeBytes)
+      : 1024;
+
+  const raw = await apiRequest<CaseAsset>(ep.confirm, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      mimeType: normalizedMime,
+      sizeBytes: validSize,
+      durationSec: payload.durationSec ? Math.round(payload.durationSec) : null,
+    }),
   });
+  return normalizeAsset(raw);
 }
 
 /**
@@ -91,22 +158,26 @@ export async function uploadAsset(
   sizeBytes: number,
   durationSec?: number | null
 ): Promise<CaseAsset> {
+  const normalizedMime = normalizeAudioMimeType(mimeType, originalFileName);
+  const validSize =
+    typeof sizeBytes === "number" && sizeBytes > 0 ? Math.round(sizeBytes) : 1024;
+
   // Step 1: Get pre-signed URL
   const { uploadUrl, storageKey } = await getUploadUrl(caseId, docType, {
     originalFileName,
-    mimeType,
+    mimeType: normalizedMime,
   });
 
-  // Step 2: Upload binary to storage
-  await uploadFileToStorage(uploadUrl, fileUri, mimeType);
+  // Step 2: Upload binary to storage (Content-Type MUST match what was signed in Step 1)
+  await uploadFileToStorage(uploadUrl, fileUri, normalizedMime);
 
   // Step 3: Confirm with backend
   return confirmAssetUpload(caseId, docType, {
     storageKey,
     originalFileName,
-    mimeType,
-    sizeBytes,
-    durationSec: durationSec ?? null,
+    mimeType: normalizedMime,
+    sizeBytes: validSize,
+    durationSec: durationSec ? Math.round(durationSec) : null,
   });
 }
 
@@ -119,7 +190,8 @@ export async function listAssets(
 ): Promise<CaseAsset[]> {
   const ep = assetEndpoint(caseId, docType);
   const result = await apiRequest<CaseAsset[]>(ep.list);
-  return Array.isArray(result) ? result : [];
+  const list = Array.isArray(result) ? result : [];
+  return list.map(normalizeAsset);
 }
 
 /**
@@ -132,10 +204,11 @@ export async function patchAsset(
   patch: Partial<Pick<CaseAsset, "label">>
 ): Promise<CaseAsset> {
   const ep = assetEndpoint(caseId, docType);
-  return apiRequest<CaseAsset>(ep.patch(assetId), {
+  const raw = await apiRequest<CaseAsset>(ep.patch(assetId), {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
+  return normalizeAsset(raw);
 }
 
 /**
@@ -148,10 +221,11 @@ export async function updateAsset(
   data: Partial<CaseAsset>
 ): Promise<CaseAsset> {
   const ep = assetEndpoint(caseId, docType);
-  return apiRequest<CaseAsset>(ep.update(assetId), {
+  const raw = await apiRequest<CaseAsset>(ep.update(assetId), {
     method: "PUT",
     body: JSON.stringify(data),
   });
+  return normalizeAsset(raw);
 }
 
 /**

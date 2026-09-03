@@ -39,14 +39,18 @@ export function MarkdownPreviewScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (params?.caseId && params?.documentId && !params.markdown) {
-      getDocument(params.caseId, "complaint", params.documentId).then((doc) => {
+      console.log(`[MarkdownPreviewScreen] Fetching document content for caseId "${params.caseId}", docId "${params.documentId}"...`);
+      getDocument(params.caseId, (params as any).docType || "complaint", params.documentId).then((doc) => {
         if (doc) {
-          setContentMarkdown(doc.markdown || TEST_PANCHANAMA);
+          const mdText = (doc as any).content || doc.markdown || TEST_PANCHANAMA;
+          console.log(`[MarkdownPreviewScreen] ✅ Loaded document content (${mdText.length} characters)`);
+          setContentMarkdown(mdText);
           setDocTitle(doc.title || "Document Preview");
-          setDocSubtitle(doc.templateName || "Document");
+          setDocSubtitle((doc as any).docType?.toUpperCase() || (doc as any).templateName || "Document");
         }
       });
     } else if (params?.markdown) {
+      console.log(`[MarkdownPreviewScreen] Rendering provided markdown content (${params.markdown.length} chars)`);
       setContentMarkdown(params.markdown);
       if (params.title) setDocTitle(params.title);
       if (params.subtitle) setDocSubtitle(params.subtitle);
