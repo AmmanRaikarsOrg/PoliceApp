@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors } from "../../theme";
 
 type Props = {
   id?: string;
@@ -26,14 +27,20 @@ export function CaseCard({
   const getStatusStyles = () => {
     switch (normalizedStatus) {
       case "open":
-        return { bg: "#FEE2E2", text: "#991B1B", label: "Open" };
-      case "processing":
-      case "in progress":
-        return { bg: "#FEF3C7", text: "#B45309", label: "Processing" };
+        return {
+          bg: colors.status.open.bg,
+          border: colors.status.open.border,
+          text: colors.status.open.text,
+          label: "Open",
+        };
       case "closed":
-        return { bg: "#E2E8F0", text: "#475569", label: "Closed" };
       default:
-        return { bg: "#F1F5F9", text: "#64748B", label: status };
+        return {
+          bg: colors.status.closed.bg,
+          border: colors.status.closed.border,
+          text: colors.status.closed.text,
+          label: "Closed",
+        };
     }
   };
 
@@ -49,7 +56,15 @@ export function CaseCard({
               <Text style={styles.typeText}>{caseType}</Text>
             </View>
           )}
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: statusStyle.bg,
+                borderColor: statusStyle.border,
+              },
+            ]}
+          >
             <Text style={[styles.statusText, { color: statusStyle.text }]}>
               {statusStyle.label}
             </Text>
@@ -61,11 +76,11 @@ export function CaseCard({
 
       <View style={styles.footer}>
         <View style={styles.metaItem}>
-          <Feather name="calendar" size={14} color="#64748B" />
+          <Feather name="calendar" size={14} color={colors.textMuted} />
           <Text style={styles.metaText}>{date}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Feather name="clock" size={14} color="#64748B" />
+          <Feather name="clock" size={14} color={colors.textMuted} />
           <Text style={styles.metaText}>{updated}</Text>
         </View>
       </View>
@@ -75,10 +90,10 @@ export function CaseCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     padding: 16,
   },
   header: {
@@ -89,26 +104,27 @@ const styles = StyleSheet.create({
   },
   id: {
     fontSize: 13,
-    color: "#64748B",
+    color: colors.textMuted,
     fontWeight: "700",
   },
   typeBadge: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
   typeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.primary,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
+    borderWidth: 1,
   },
   statusText: {
     fontSize: 12,
@@ -117,7 +133,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   footer: {
@@ -132,6 +148,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: "#64748B",
+    color: colors.textMuted,
   },
 });

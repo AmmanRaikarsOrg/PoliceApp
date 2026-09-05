@@ -15,6 +15,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 import { CaseAsset } from "../../utils/types";
+import { colors } from "../../theme";
 
 type Props = {
   asset: CaseAsset;
@@ -188,12 +189,12 @@ export function AudioAssetCard({
           <View style={[styles.typeIconBox, (isUploading || isFetching) && styles.typeIconBoxUploading]}>
             {isUploading ? (
               <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Feather name="loader" size={18} color="#0F294A" />
+                <Feather name="loader" size={18} color={colors.primary} />
               </Animated.View>
             ) : isFetching ? (
-              <ActivityIndicator size="small" color="#2563EB" />
+              <ActivityIndicator size="small" color={colors.accent} />
             ) : (
-              <Feather name="music" size={18} color="#0F294A" />
+              <Feather name="music" size={18} color={colors.primary} />
             )}
           </View>
 
@@ -222,7 +223,7 @@ export function AudioAssetCard({
                 <Feather
                   name="chevron-up"
                   size={18}
-                  color={isFirst ? "#CBD5E1" : "#1E293B"}
+                  color={isFirst ? colors.borderMedium : colors.textPrimary}
                 />
               </Pressable>
 
@@ -236,7 +237,7 @@ export function AudioAssetCard({
                 <Feather
                   name="chevron-down"
                   size={18}
-                  color={isLast ? "#CBD5E1" : "#1E293B"}
+                  color={isLast ? colors.borderMedium : colors.textPrimary}
                 />
               </Pressable>
             </View>
@@ -247,7 +248,7 @@ export function AudioAssetCard({
             {isUploading && (
               <View style={styles.uploadingBadge}>
                 <Animated.View style={{ transform: [{ rotate: spin }], marginRight: 4 }}>
-                  <Feather name="refresh-cw" size={12} color="#D97706" />
+                  <Feather name="refresh-cw" size={12} color={colors.warning.main} />
                 </Animated.View>
                 <Text style={styles.uploadingText}>Uploading...</Text>
               </View>
@@ -255,21 +256,21 @@ export function AudioAssetCard({
 
             {isFetching && (
               <View style={styles.fetchingBadge}>
-                <ActivityIndicator size="small" color="#2563EB" style={{ transform: [{ scale: 0.7 }] }} />
+                <ActivityIndicator size="small" color={colors.accent} style={{ transform: [{ scale: 0.7 }] }} />
                 <Text style={styles.fetchingText}>Loading...</Text>
               </View>
             )}
 
             {!isUploading && !isFetching && !isError && (
               <View style={styles.uploadedBadge}>
-                <Feather name="check-circle" size={13} color="#16A34A" />
+                <Feather name="check-circle" size={13} color={colors.success.main} />
                 <Text style={styles.uploadedText}>Ready</Text>
               </View>
             )}
 
             {isError && (
               <View style={styles.errorBadge}>
-                <Feather name="alert-circle" size={13} color="#DC2626" />
+                <Feather name="alert-circle" size={13} color={colors.error.main} />
                 <Text style={styles.errorText}>Failed</Text>
               </View>
             )}
@@ -283,9 +284,9 @@ export function AudioAssetCard({
               accessibilityLabel="Download audio file"
             >
               {isDownloading ? (
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color={colors.accent} />
               ) : (
-                <Feather name="download" size={16} color="#0F294A" />
+                <Feather name="download" size={16} color={colors.primary} />
               )}
             </Pressable>
 
@@ -297,7 +298,7 @@ export function AudioAssetCard({
                 hitSlop={8}
                 accessibilityLabel="Delete audio"
               >
-                <Feather name="trash-2" size={16} color="#94A3B8" />
+                <Feather name="trash-2" size={16} color={colors.textPlaceholder} />
               </Pressable>
             )}
           </View>
@@ -315,7 +316,7 @@ export function AudioAssetCard({
             <Feather
               name={isPlaying ? "pause" : "play"}
               size={15}
-              color="#FFFFFF"
+              color={colors.textInverse}
             />
           </Pressable>
 
@@ -342,7 +343,7 @@ export function AudioAssetCard({
         </View>
       ) : isFetching ? (
         <View style={styles.playerRowFetching}>
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color={colors.accent} />
           <Text style={styles.fetchingPlayerText}>Fetching audio file from cloud...</Text>
         </View>
       ) : null}
@@ -352,13 +353,13 @@ export function AudioAssetCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     marginBottom: 10,
-    shadowColor: "#0F172A",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -378,13 +379,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   orderBadge: {
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   orderBadgeText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontSize: 11,
     fontWeight: "800",
     fontVariant: ["tabular-nums"],
@@ -393,12 +394,12 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 8,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.primarySubtle,
     alignItems: "center",
     justifyContent: "center",
   },
   typeIconBoxUploading: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: colors.warning.bg,
   },
   nameBlock: {
     flex: 1,
@@ -406,12 +407,12 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.primary,
     marginBottom: 2,
   },
   fileMeta: {
     fontSize: 12,
-    color: "#64748B",
+    color: colors.textMuted,
   },
   rightControls: {
     flexDirection: "row",
@@ -420,10 +421,10 @@ const styles = StyleSheet.create({
   },
   reorderGroup: {
     flexDirection: "row",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     overflow: "hidden",
   },
   reorderBtn: {
@@ -443,8 +444,8 @@ const styles = StyleSheet.create({
   uploadingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    borderColor: "#FDE68A",
+    backgroundColor: colors.warning.bg,
+    borderColor: colors.warning.border,
     borderWidth: 1,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -453,13 +454,13 @@ const styles = StyleSheet.create({
   uploadingText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#D97706",
+    color: colors.warning.main,
   },
   fetchingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    borderColor: "#BFDBFE",
+    backgroundColor: colors.info.bg,
+    borderColor: colors.info.border,
     borderWidth: 1,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -469,13 +470,13 @@ const styles = StyleSheet.create({
   fetchingText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#2563EB",
+    color: colors.accent,
   },
   uploadedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0FDF4",
-    borderColor: "#BBF7D0",
+    backgroundColor: colors.success.bg,
+    borderColor: colors.success.border,
     borderWidth: 1,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -485,13 +486,13 @@ const styles = StyleSheet.create({
   uploadedText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#16A34A",
+    color: colors.success.main,
   },
   errorBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF2F2",
-    borderColor: "#FECACA",
+    backgroundColor: colors.error.bg,
+    borderColor: colors.error.border,
     borderWidth: 1,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -501,21 +502,21 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#DC2626",
+    color: colors.error.main,
   },
   actionIconBtn: {
     padding: 5,
     borderRadius: 6,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surfaceSubtle,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   playerRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
   playerRowFetching: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.info.bg,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
@@ -532,19 +533,19 @@ const styles = StyleSheet.create({
   },
   fetchingPlayerText: {
     fontSize: 12,
-    color: "#2563EB",
+    color: colors.accent,
     fontWeight: "600",
   },
   playButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   playButtonActive: {
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.accent,
   },
   progressContainer: {
     flex: 1,
@@ -554,17 +555,17 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.border,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.accent,
     borderRadius: 2,
   },
   timeText: {
     fontSize: 11,
-    color: "#64748B",
+    color: colors.textMuted,
     fontVariant: ["tabular-nums"],
     minWidth: 70,
     textAlign: "right",

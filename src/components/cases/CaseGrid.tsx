@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Case } from "../../utils/types";
 import { CaseCard } from "./CaseCard";
+import { colors } from "../../theme";
 
 type Props = {
   cases?: Case[];
@@ -26,7 +27,7 @@ export function CaseGrid({
   if (loading && cases.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0F294A" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading cases...</Text>
       </View>
     );
@@ -53,7 +54,7 @@ export function CaseGrid({
           <RefreshControl
             refreshing={loading}
             onRefresh={onRefresh}
-            colors={["#0F294A"]}
+            colors={[colors.primary]}
           />
         ) : undefined
       }
@@ -86,27 +87,27 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadingText: {
-    color: "#64748B",
+    color: colors.textMuted,
     fontSize: 14,
   },
   emptyContainer: {
     padding: 36,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     marginTop: 12,
     gap: 6,
   },
   emptyTitle: {
-    color: "#0F294A",
+    color: colors.primary,
     fontSize: 16,
     fontWeight: "700",
   },
   emptySubtitle: {
-    color: "#64748B",
+    color: colors.textMuted,
     fontSize: 13,
     textAlign: "center",
   },

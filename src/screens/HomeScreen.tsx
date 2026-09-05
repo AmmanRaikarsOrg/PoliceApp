@@ -19,6 +19,7 @@ import { CaseTypeFilter } from "../components/cases/CaseTypeFilter";
 import { CreateCaseModal } from "../components/cases/CreateCaseModal";
 import { useCases } from "../hooks/useCases";
 import { useAuth } from "../hooks/useAuth";
+import { colors } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
@@ -51,16 +52,14 @@ export function HomeScreen({ navigation }: Props) {
     );
   }, [cases]);
 
-  // Client & server synchronized filtering
+  // Client & server synchronized filtering (Strictly Open and Closed)
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
-      // 1. Status Filter
+      // 1. Status Filter (Only Open & Closed)
       if (selectedStatus !== "ALL") {
         const caseStatus = (c.status || "open").toLowerCase();
         const targetStatus = selectedStatus.toLowerCase();
-        if (targetStatus === "processing") {
-          if (caseStatus !== "processing" && caseStatus !== "in progress") return false;
-        } else if (caseStatus !== targetStatus) {
+        if (caseStatus !== targetStatus) {
           return false;
         }
       }
@@ -115,16 +114,16 @@ export function HomeScreen({ navigation }: Props) {
             style={styles.profile}
           />
           <View>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#0F172A" }}>
+            <Text style={styles.officerName}>
               {user?.name || "Officer"}
             </Text>
-            <Text style={{ fontSize: 13, color: "#64748B" }}>
+            <Text style={styles.stationName}>
               Station {user?.policeStationId || "N/A"}
             </Text>
           </View>
         </View>
         <Pressable hitSlop={8} onPress={handleRefresh}>
-          <Feather name="rotate-cw" size={20} color="#0F172A" />
+          <Feather name="rotate-cw" size={20} color={colors.textPrimary} />
         </Pressable>
       </View>
 
@@ -148,12 +147,12 @@ export function HomeScreen({ navigation }: Props) {
             onPress={() => setCreateCaseVisible(true)}
           >
             <Text style={styles.createButtonText}>Create New Case</Text>
-            <Feather name="arrow-right" size={16} color="#FFFFFF" />
+            <Feather name="arrow-right" size={16} color={colors.textInverse} />
           </Pressable>
         </View>
       </View>
 
-      {/* Filters: Status Filter + Case Type Filter */}
+      {/* Filters: Status Filter (Open / Closed) + Case Type Filter */}
       <View style={styles.filtersSection}>
         <View style={styles.filterHeaderRow}>
           <Text style={styles.filterSectionTitle}>CASE STATUS</Text>
@@ -220,7 +219,7 @@ export function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
     paddingHorizontal: 16,
   },
   header: {
@@ -234,20 +233,29 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#CBD5E1",
+    backgroundColor: colors.borderMedium,
+  },
+  officerName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  stationName: {
+    fontSize: 13,
+    color: colors.textMuted,
   },
   createCard: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     marginTop: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     overflow: "hidden",
   },
   createCardLeftBorder: {
     width: 4,
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
   },
   createCardContent: {
     flex: 1,
@@ -256,20 +264,20 @@ const styles = StyleSheet.create({
   createTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#0F294A",
+    color: colors.primary,
     marginBottom: 4,
     letterSpacing: -0.2,
   },
   createSubtitle: {
     fontSize: 13,
-    color: "#475569",
+    color: colors.textSecondary,
     marginBottom: 12,
     lineHeight: 18,
   },
   createButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 8,
@@ -277,7 +285,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   createButtonText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -295,13 +303,13 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#64748B",
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
   resetFilterText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#2563EB",
+    color: colors.accent,
   },
   resultsInfoRow: {
     flexDirection: "row",
@@ -312,6 +320,6 @@ const styles = StyleSheet.create({
   resultsCountText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.textMuted,
   },
 });

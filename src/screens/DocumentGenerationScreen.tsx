@@ -24,6 +24,7 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import { getInfoAsync } from "expo-file-system/legacy";
 import { AudioAssetCard } from "../components/audio/AudioAssetCard";
+import { colors } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -376,40 +377,40 @@ export function DocumentGenerationScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   content: {
     padding: 20,
     gap: 16,
   },
   title: {
-    color: "#0F294A",
+    color: colors.primary,
     fontSize: 26,
     fontWeight: "800",
     letterSpacing: -0.5,
     marginTop: 8,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#0F172A",
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
   recordingCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     borderWidth: 2,
-    borderColor: "#EF4444",
-    shadowColor: "#EF4444",
+    borderColor: colors.error.main,
+    shadowColor: colors.error.main,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -425,25 +426,25 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.error.main,
   },
   recordingDotPaused: {
-    backgroundColor: "#F59E0B",
+    backgroundColor: colors.warning.main,
   },
   recordingStatusText: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#0F294A",
+    color: colors.primary,
   },
   recordingSubtext: {
     fontSize: 12,
-    color: "#64748B",
+    color: colors.textMuted,
     marginTop: 2,
   },
   recordingTimer: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#EF4444",
+    color: colors.error.main,
     fontVariant: ["tabular-nums"],
   },
   recordingControlRow: {
@@ -460,25 +461,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pauseBtn: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.primarySubtle,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: colors.info.border,
   },
   resumeBtn: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: colors.warning.bg,
     borderWidth: 1,
-    borderColor: "#FDE68A",
+    borderColor: colors.warning.border,
   },
   stopSaveBtn: {
-    backgroundColor: "#DC2626",
+    backgroundColor: colors.error.main,
   },
   recordingControlBtnText: {
-    color: "#0F294A",
+    color: colors.primary,
     fontSize: 14,
     fontWeight: "700",
   },
   stopSaveBtnText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -494,42 +495,42 @@ const styles = StyleSheet.create({
   attachedHeader: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#475569",
+    color: colors.textSecondary,
   },
   reorderHint: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#2563EB",
+    color: colors.accent,
   },
   iconCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
   iconCircleActive: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.error.main,
   },
   uploadIconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
   cardTitle: {
-    color: "#0F294A",
+    color: colors.primary,
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 2,
   },
   cardSubtitle: {
-    color: "#64748B",
+    color: colors.textMuted,
     fontSize: 12,
   },
   dividerContainer: {
@@ -541,10 +542,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.border,
   },
   dividerText: {
-    color: "#94A3B8",
+    color: colors.textPlaceholder,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -553,31 +554,31 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dropdownHeader: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: colors.borderMedium,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   dropdownText: {
     fontSize: 14,
-    color: "#64748B",
+    color: colors.textMuted,
   },
   matrixLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#64748B",
+    color: colors.textMuted,
     letterSpacing: 0.5,
     marginTop: 6,
   },
   matrixList: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     overflow: "hidden",
   },
   matrixItem: {
@@ -586,19 +587,19 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
     borderBottomWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: colors.surfaceMuted,
   },
   matrixItemSelected: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surfaceSubtle,
   },
   matrixItemText: {
     flex: 1,
     fontSize: 14,
-    color: "#334155",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   matrixItemTextSelected: {
-    color: "#0F294A",
+    color: colors.primary,
     fontWeight: "700",
   },
   actions: {
@@ -606,7 +607,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   primaryButton: {
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     flexDirection: "row",
@@ -615,7 +616,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -624,7 +625,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   secondaryButtonText: {
-    color: "#475569",
+    color: colors.textSecondary,
     fontSize: 15,
     fontWeight: "600",
   },

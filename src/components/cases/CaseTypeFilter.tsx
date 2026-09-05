@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors } from "../../theme";
 
 export const DEFAULT_CASE_TYPES = [
   "Theft",
@@ -53,7 +54,11 @@ export function CaseTypeFilter({
           <Feather
             name="layers"
             size={12}
-            color={selectedType.toUpperCase() === "ALL" ? "#FFFFFF" : "#64748B"}
+            color={
+              selectedType.toUpperCase() === "ALL"
+                ? colors.textInverse
+                : colors.textMuted
+            }
           />
           <Text
             style={[
@@ -84,7 +89,12 @@ export function CaseTypeFilter({
                 {type}
               </Text>
               {isActive && (
-                <Feather name="x" size={12} color="#FFFFFF" style={{ marginLeft: 2 }} />
+                <Feather
+                  name="x"
+                  size={12}
+                  color={colors.textInverse}
+                  style={{ marginLeft: 2 }}
+                />
               )}
             </Pressable>
           );
@@ -107,25 +117,25 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     gap: 4,
   },
   activeChip: {
-    backgroundColor: "#0F294A",
-    borderColor: "#0F294A",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   chipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.textMuted,
   },
   activeChipText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontWeight: "700",
   },
 });

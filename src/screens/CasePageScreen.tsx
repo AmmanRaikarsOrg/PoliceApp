@@ -20,35 +20,28 @@ import { useDocuments } from "../hooks/useDocuments";
 import { useAssets } from "../hooks/useAssets";
 import { getDocument } from "../services/documents/documentService";
 import { AudioAssetCard } from "../components/audio/AudioAssetCard";
+import { colors } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CasePage">;
 
+// Strictly OPEN and CLOSED status options
 const STATUS_CHOICES = [
   {
     key: "open",
     label: "OPEN",
-    dot: "#DC2626",
-    bg: "#FEF2F2",
-    border: "#FECACA",
-    text: "#991B1B",
+    dot: colors.status.open.dot,
+    bg: colors.status.open.bg,
+    border: colors.status.open.border,
+    text: colors.status.open.text,
     description: "Active police investigation",
-  },
-  {
-    key: "processing",
-    label: "PROCESSING",
-    dot: "#D97706",
-    bg: "#FFFBEB",
-    border: "#FDE68A",
-    text: "#B45309",
-    description: "Documentation under process / review",
   },
   {
     key: "closed",
     label: "CLOSED",
-    dot: "#475569",
-    bg: "#F1F5F9",
-    border: "#E2E8F0",
-    text: "#475569",
+    dot: colors.status.closed.dot,
+    bg: colors.status.closed.bg,
+    border: colors.status.closed.border,
+    text: colors.status.closed.text,
     description: "Case resolved and filed",
   },
 ];
@@ -151,11 +144,12 @@ export function CasePageScreen({ navigation, route }: Props) {
 
   const handleSelectStatus = async (newStatus: string) => {
     setStatusDropdownOpen(false);
-    console.log(`[CasePageScreen] Officer changed status to "${newStatus}" for case "${caseId}"`);
+    const validStatus = newStatus.toLowerCase() === "closed" ? "closed" : "open";
+    console.log(`[CasePageScreen] Officer changed status to "${validStatus}" for case "${caseId}"`);
     try {
       setUpdatingStatus(true);
-      await updateCaseDetails(caseId, { status: newStatus as any });
-      console.log(`[CasePageScreen] ✅ Case status successfully updated to "${newStatus}" in backend.`);
+      await updateCaseDetails(caseId, { status: validStatus as any });
+      console.log(`[CasePageScreen] ✅ Case status successfully updated to "${validStatus}" in backend.`);
     } catch (err: any) {
       console.error(`[CasePageScreen] ❌ Failed to update case status:`, err);
       Alert.alert("Error", `Could not update case status: ${err?.message || "Unknown error"}`);
@@ -189,14 +183,15 @@ export function CasePageScreen({ navigation, route }: Props) {
     (d) => d.docType === "complaint" || d.title?.toLowerCase().includes("complaint")
   );
 
-  const currentStatus = (selectedCase?.status || "open").toLowerCase();
+  const rawStatus = (selectedCase?.status || "open").toLowerCase();
+  const currentStatus = rawStatus === "closed" ? "closed" : "open";
   const currentStatusChoice =
     STATUS_CHOICES.find((s) => s.key === currentStatus) || STATUS_CHOICES[0];
 
   if (caseLoading && !selectedCase) {
     return (
       <View style={styles.centerLoading}>
-        <ActivityIndicator size="large" color="#0F294A" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -224,7 +219,7 @@ export function CasePageScreen({ navigation, route }: Props) {
               }}
               hitSlop={8}
             >
-              <Feather name="tag" size={15} color="#475569" />
+              <Feather name="tag" size={15} color={colors.textMuted} />
             </Pressable>
             <Pressable
               style={styles.iconBtn}
@@ -236,7 +231,7 @@ export function CasePageScreen({ navigation, route }: Props) {
               }}
               hitSlop={8}
             >
-              <Feather name="rotate-cw" size={15} color="#475569" />
+              <Feather name="rotate-cw" size={15} color={colors.textMuted} />
             </Pressable>
           </View>
         </View>
@@ -247,7 +242,7 @@ export function CasePageScreen({ navigation, route }: Props) {
 
         {/* STATUS DROPDOWN & CASE TYPE ROW (JUST BELOW CASE TITLE) */}
         <View style={styles.statusAndTypeRow}>
-          {/* Status Dropdown Trigger */}
+          {/* Status Dropdown Trigger (Only OPEN & CLOSED) */}
           <Pressable
             style={[
               styles.statusDropdownTrigger,
@@ -280,20 +275,20 @@ export function CasePageScreen({ navigation, route }: Props) {
             }}
             hitSlop={6}
           >
-            <Feather name="folder" size={12} color="#0F294A" />
+            <Feather name="folder" size={12} color={colors.primary} />
             <Text style={styles.caseTypeTagText} numberOfLines={1}>
               {selectedCase?.caseType || selectedCase?.type || "+ Add Case Type"}
             </Text>
-            <Feather name="edit-2" size={11} color="#64748B" />
+            <Feather name="edit-2" size={11} color={colors.textMuted} />
           </Pressable>
         </View>
 
-        {/* Inline Status Dropdown Menu (when toggled open) */}
+        {/* Inline Status Dropdown Menu (Only OPEN and CLOSED) */}
         {statusDropdownOpen && (
           <View style={styles.statusDropdownMenu}>
             <Text style={styles.dropdownHeaderTitle}>UPDATE CASE STATUS</Text>
             {STATUS_CHOICES.map((choice) => {
-              const isSelected = choice.key === currentStatus.toLowerCase();
+              const isSelected = choice.key === currentStatus;
               return (
                 <Pressable
                   key={choice.key}
@@ -333,11 +328,11 @@ export function CasePageScreen({ navigation, route }: Props) {
             style={styles.viewComplaintDocBtn}
             onPress={() => handleOpenMarkdownViewer(complaintDoc)}
           >
-            <Feather name="file-text" size={16} color="#0F294A" />
+            <Feather name="file-text" size={16} color={colors.primary} />
             <Text style={styles.viewComplaintDocText}>
               View Formatted Complaint Document
             </Text>
-            <Feather name="arrow-right" size={15} color="#0F294A" />
+            <Feather name="arrow-right" size={15} color={colors.primary} />
           </Pressable>
         )}
       </View>
@@ -351,7 +346,7 @@ export function CasePageScreen({ navigation, route }: Props) {
           <Feather
             name="file-text"
             size={15}
-            color={activeTab === "documents" ? "#0F294A" : "#64748B"}
+            color={activeTab === "documents" ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.tabText, activeTab === "documents" && styles.activeTabText]}>
             Documents ({documents.length})
@@ -365,7 +360,7 @@ export function CasePageScreen({ navigation, route }: Props) {
           <Feather
             name="music"
             size={15}
-            color={activeTab === "audio" ? "#0F294A" : "#64748B"}
+            color={activeTab === "audio" ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.tabText, activeTab === "audio" && styles.activeTabText]}>
             Audio ({assets.length})
@@ -379,7 +374,7 @@ export function CasePageScreen({ navigation, route }: Props) {
           <Feather
             name="info"
             size={15}
-            color={activeTab === "info" ? "#0F294A" : "#64748B"}
+            color={activeTab === "info" ? colors.primary : colors.textMuted}
           />
           <Text style={[styles.tabText, activeTab === "info" && styles.activeTabText]}>
             Case Info
@@ -394,7 +389,7 @@ export function CasePageScreen({ navigation, route }: Props) {
           {isPollingDoc && (
             <View style={styles.processingCard}>
               <View style={styles.processingSpinnerContainer}>
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color={colors.accent} />
               </View>
               <View style={styles.processingInfo}>
                 <Text style={styles.processingTitle}>AI Document Generation in Progress</Text>
@@ -417,7 +412,7 @@ export function CasePageScreen({ navigation, route }: Props) {
               onPress={() => handleOpenMarkdownViewer(doc)}
             >
               <View style={styles.docIconBox}>
-                <Feather name="file-text" size={20} color="#0F294A" />
+                <Feather name="file-text" size={20} color={colors.primary} />
               </View>
               <View style={styles.docInfo}>
                 <Text style={styles.docTitle} numberOfLines={1}>
@@ -430,14 +425,14 @@ export function CasePageScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.viewDocBadge}>
                 <Text style={styles.viewDocBadgeText}>View</Text>
-                <Feather name="chevron-right" size={15} color="#2563EB" />
+                <Feather name="chevron-right" size={15} color={colors.accent} />
               </View>
             </Pressable>
           ))}
 
           {documents.length === 0 && !docsLoading && !isPollingDoc && (
             <View style={styles.emptyTabContent}>
-              <Feather name="folder" size={32} color="#94A3B8" />
+              <Feather name="folder" size={32} color={colors.borderDark} />
               <Text style={styles.emptyTabText}>No documents generated yet.</Text>
             </View>
           )}
@@ -452,7 +447,7 @@ export function CasePageScreen({ navigation, route }: Props) {
               });
             }}
           >
-            <Feather name="plus-circle" size={18} color="#0F294A" />
+            <Feather name="plus-circle" size={18} color={colors.primary} />
             <Text style={styles.generateButtonText}>GENERATE NEW DOCUMENT</Text>
           </Pressable>
         </View>
@@ -473,7 +468,7 @@ export function CasePageScreen({ navigation, route }: Props) {
 
           {assets.length === 0 && !assetsLoading && (
             <View style={styles.emptyTabContent}>
-              <Feather name="mic" size={32} color="#94A3B8" />
+              <Feather name="mic" size={32} color={colors.borderDark} />
               <Text style={styles.emptyTabText}>No audio recordings attached yet.</Text>
             </View>
           )}
@@ -531,14 +526,14 @@ export function CasePageScreen({ navigation, route }: Props) {
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Feather name="tag" size={18} color="#0F294A" />
+                <Feather name="tag" size={18} color={colors.primary} />
                 <Text style={styles.modalTitle}>Set Case Type</Text>
               </View>
               <Pressable
                 onPress={() => setCaseTypeModalVisible(false)}
                 hitSlop={8}
               >
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color={colors.textMuted} />
               </Pressable>
             </View>
 
@@ -577,7 +572,7 @@ export function CasePageScreen({ navigation, route }: Props) {
             <TextInput
               style={styles.caseTypeTextInput}
               placeholder="Or type custom category..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.textPlaceholder}
               value={caseTypeInput}
               onChangeText={setCaseTypeInput}
               autoCapitalize="words"
@@ -597,7 +592,7 @@ export function CasePageScreen({ navigation, route }: Props) {
                 disabled={savingCaseType}
               >
                 {savingCaseType ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.textInverse} />
                 ) : (
                   <Text style={styles.saveTypeBtnText}>Save Case Type</Text>
                 )}
@@ -613,7 +608,7 @@ export function CasePageScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   content: {
     paddingHorizontal: 16,
@@ -623,14 +618,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.background,
   },
   caseHeaderCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     gap: 10,
   },
   caseHeaderTop: {
@@ -639,7 +634,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   caseIdBadge: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -647,7 +642,7 @@ const styles = StyleSheet.create({
   caseIdText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#475569",
+    color: colors.status.closed.text,
   },
   iconActions: {
     flexDirection: "row",
@@ -657,16 +652,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surfaceSubtle,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
   caseTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#0F294A",
+    color: colors.primary,
     letterSpacing: -0.3,
   },
   statusAndTypeRow: {
@@ -698,9 +693,9 @@ const styles = StyleSheet.create({
   caseTypeTagBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -709,18 +704,18 @@ const styles = StyleSheet.create({
   caseTypeTagText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.primary,
     maxWidth: 160,
   },
   statusDropdownMenu: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     padding: 8,
     marginTop: 6,
     gap: 6,
-    shadowColor: "#0F172A",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -729,7 +724,7 @@ const styles = StyleSheet.create({
   dropdownHeaderTitle: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#94A3B8",
+    color: colors.textPlaceholder,
     paddingHorizontal: 8,
     paddingVertical: 2,
     letterSpacing: 0.5,
@@ -748,31 +743,31 @@ const styles = StyleSheet.create({
   },
   statusChoiceSub: {
     fontSize: 11,
-    color: "#64748B",
+    color: colors.textMuted,
   },
   detailsCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     gap: 8,
   },
   detailsLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#64748B",
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
   detailsText: {
     fontSize: 13,
     lineHeight: 20,
-    color: "#334155",
+    color: colors.textSecondary,
   },
   tabContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     marginVertical: 4,
   },
   tab: {
@@ -786,35 +781,35 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   activeTab: {
-    borderColor: "#0F294A",
+    borderColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.textMuted,
   },
   activeTabText: {
-    color: "#0F294A",
+    color: colors.primary,
     fontWeight: "700",
   },
   docsSection: {
     gap: 12,
   },
   docCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
   docIconBox: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -825,11 +820,11 @@ const styles = StyleSheet.create({
   docTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.primary,
   },
   docMeta: {
     fontSize: 12,
-    color: "#64748B",
+    color: colors.textMuted,
   },
   generateButton: {
     flexDirection: "row",
@@ -840,14 +835,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.borderMedium,
+    backgroundColor: colors.surface,
     marginTop: 4,
   },
   generateButtonText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#0F294A",
+    color: colors.primary,
     letterSpacing: 0.5,
   },
   emptyTabContent: {
@@ -857,13 +852,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTabText: {
-    color: "#64748B",
+    color: colors.textMuted,
     fontSize: 14,
   },
   viewComplaintDocBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
@@ -874,18 +869,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: "700",
-    color: "#0F294A",
+    color: colors.primary,
   },
   processingCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.info.bg,
     borderWidth: 1.5,
-    borderColor: "#93C5FD",
+    borderColor: colors.info.border,
     borderRadius: 14,
     padding: 16,
     gap: 14,
-    shadowColor: "#2563EB",
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -895,7 +890,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#DBEAFE",
+    backgroundColor: colors.accentLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -906,15 +901,15 @@ const styles = StyleSheet.create({
   processingTitle: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#1E40AF",
+    color: colors.primaryLight,
   },
   processingSubtext: {
     fontSize: 12,
-    color: "#3B82F6",
+    color: colors.accent,
   },
   docIdBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#BFDBFE",
+    backgroundColor: colors.info.border,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -923,13 +918,13 @@ const styles = StyleSheet.create({
   docIdBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#1E3A8A",
+    color: colors.primaryLight,
     fontVariant: ["tabular-nums"],
   },
   viewDocBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.info.bg,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -938,20 +933,20 @@ const styles = StyleSheet.create({
   viewDocBadgeText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#2563EB",
+    color: colors.accent,
   },
   infoCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     gap: 6,
   },
   infoRowTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#64748B",
+    color: colors.textMuted,
     marginTop: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -959,22 +954,22 @@ const styles = StyleSheet.create({
   infoRowValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#0F294A",
+    color: colors.primary,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    backgroundColor: colors.overlay,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
   },
   modalCard: {
     width: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 20,
     gap: 12,
-    shadowColor: "#0F172A",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
@@ -988,11 +983,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#0F294A",
+    color: colors.primary,
   },
   modalSubtitle: {
     fontSize: 13,
-    color: "#64748B",
+    color: colors.textMuted,
   },
   presetChipsWrapper: {
     flexDirection: "row",
@@ -1001,34 +996,34 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   presetChip: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   presetChipSelected: {
-    backgroundColor: "#0F294A",
-    borderColor: "#0F294A",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   presetChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#475569",
+    color: colors.status.closed.text,
   },
   presetChipTextSelected: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontWeight: "700",
   },
   caseTypeTextInput: {
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: colors.borderMedium,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#0F172A",
+    color: colors.textPrimary,
     marginTop: 4,
   },
   modalActions: {
@@ -1046,10 +1041,10 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.textMuted,
   },
   saveTypeBtn: {
-    backgroundColor: "#0F294A",
+    backgroundColor: colors.primary,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1058,7 +1053,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   saveTypeBtnText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
     fontSize: 13,
     fontWeight: "700",
   },

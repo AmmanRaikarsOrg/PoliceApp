@@ -39,7 +39,7 @@ export type LoginPayload = {
 // 2. Case Models (Matching /api/cases)
 // ----------------------------------------------------------------------------
 
-export type CaseStatus = "open" | "closed" | "processing" | "deleted" | "OPEN" | "CLOSED" | "PROCESSING" | "DELETED";
+export type CaseStatus = "open" | "closed" | "deleted" | "OPEN" | "CLOSED" | "DELETED";
 
 /**
  * Backend Case response shape as returned by MongoDB / Express API
@@ -53,7 +53,7 @@ export type BackendCase = {
   location?: string | null;
   description?: string | null;
   dateOfIncident?: string | null;
-  status: "open" | "closed" | "processing" | "deleted";
+  status: "open" | "closed" | "deleted";
   caseType?: string | null;
   createdAt: string;
   updatedAt: string;

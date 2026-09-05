@@ -1,18 +1,17 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { colors } from "../../theme";
 
 type StatusOption = {
   key: string;
   label: string;
-  color?: string;
-  activeBg?: string;
+  activeBg: string;
 };
 
 const STATUS_OPTIONS: StatusOption[] = [
-  { key: "ALL", label: "All" },
-  { key: "OPEN", label: "Open", activeBg: "#DC2626" },
-  { key: "PROCESSING", label: "Processing", activeBg: "#D97706" },
-  { key: "CLOSED", label: "Closed", activeBg: "#475569" },
+  { key: "ALL", label: "All", activeBg: colors.primary },
+  { key: "OPEN", label: "Open", activeBg: colors.status.open.main },
+  { key: "CLOSED", label: "Closed", activeBg: colors.status.closed.main },
 ];
 
 type Props = {
@@ -31,8 +30,7 @@ export function CaseStatusFilter({ selectedStatus = "ALL", onSelectStatus }: Pro
             key={opt.key}
             style={[
               styles.pill,
-              isActive && styles.activePill,
-              isActive && opt.activeBg ? { backgroundColor: opt.activeBg } : null,
+              isActive && [styles.activePill, { backgroundColor: opt.activeBg }],
             ]}
             onPress={() => onSelectStatus(opt.key)}
             hitSlop={6}
@@ -60,23 +58,22 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   pill: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
   },
   activePill: {
-    backgroundColor: "#0F294A",
-    borderColor: "transparent",
+    borderColor: colors.transparent,
   },
   pillText: {
-    color: "#64748B",
+    color: colors.textMuted,
     fontSize: 12,
     fontWeight: "700",
   },
   activeText: {
-    color: "#FFFFFF",
+    color: colors.textInverse,
   },
 });

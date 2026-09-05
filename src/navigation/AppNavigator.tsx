@@ -11,7 +11,8 @@ import { DocumentGenerationScreen } from "../screens/DocumentGenerationScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MarkdownDocxTestScreen } from "../screens/MarkdownDocxTestScreen";
 import { MarkdownPreviewScreen } from "../screens/MarkdownPreviewScreen";
-import { NudiFontTestScreen } from '../screens/NudiFontTestScreen'
+import { NudiFontTestScreen } from '../screens/NudiFontTestScreen';
+import { colors } from "../theme";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -21,14 +22,14 @@ export function AppNavigator() {
       initialRouteName="Home"
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.surface,
         },
-        headerTintColor: "#0F172A",
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: "700",
         },
         contentStyle: {
-          backgroundColor: "#F8FAFC",
+          backgroundColor: colors.background,
         },
       }}
     >
