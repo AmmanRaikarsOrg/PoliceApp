@@ -64,6 +64,7 @@ export function CaseGrid({
           date={item.date}
           updated={item.updatedAt || "Active"}
           status={item.status}
+          caseType={item.caseType || item.type}
           onPress={() => onCasePress?.(item.id)}
         />
       )}
@@ -109,4 +110,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
   },
-});
+});

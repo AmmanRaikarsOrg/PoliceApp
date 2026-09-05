@@ -24,6 +24,7 @@ export function CreateCaseModal({
 }: Props) {
   const [caseName, setCaseName] = useState("");
   const [description, setDescription] = useState("");
+  const [caseType, setCaseType] = useState("");
   const [location, setLocation] = useState("");
   const [firNumber, setFirNumber] = useState("");
   const [date, setDate] = useState("");
@@ -40,6 +41,7 @@ export function CreateCaseModal({
       const newCase = await createNewCase({
         title: caseName,
         description: description,
+        caseType: caseType.trim() || undefined,
         location,
         firNumber,
         date
@@ -76,6 +78,13 @@ export function CreateCaseModal({
             value={caseName}
             onChangeText={setCaseName}
             placeholder="Case name"
+          />
+
+          <Input
+            label="Case Type (e.g. Theft, Cybercrime, Fraud)"
+            value={caseType}
+            onChangeText={setCaseType}
+            placeholder="Case Category"
           />
 
           <Input

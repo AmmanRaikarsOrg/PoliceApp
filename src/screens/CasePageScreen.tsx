@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,17 +23,68 @@ import { AudioAssetCard } from "../components/audio/AudioAssetCard";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CasePage">;
 
+const STATUS_CHOICES = [
+  {
+    key: "open",
+    label: "OPEN",
+    dot: "#DC2626",
+    bg: "#FEF2F2",
+    border: "#FECACA",
+    text: "#991B1B",
+    description: "Active police investigation",
+  },
+  {
+    key: "processing",
+    label: "PROCESSING",
+    dot: "#D97706",
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    text: "#B45309",
+    description: "Documentation under process / review",
+  },
+  {
+    key: "closed",
+    label: "CLOSED",
+    dot: "#475569",
+    bg: "#F1F5F9",
+    border: "#E2E8F0",
+    text: "#475569",
+    description: "Case resolved and filed",
+  },
+];
+
+const PRESET_CASE_TYPES = [
+  "Theft",
+  "Assault",
+  "Cybercrime",
+  "Fraud",
+  "Missing Person",
+  "Narcotics",
+  "Traffic",
+  "Domestic Dispute",
+  "Robbery",
+  "Homicide",
+  "Other",
+];
+
 export function CasePageScreen({ navigation, route }: Props) {
   const { caseId, docType: routeDocType, generatingDocId } = route.params;
   const insets = useSafeAreaInsets();
+
   const [activeTab, setActiveTab] = useState<"documents" | "audio" | "info">("documents");
-  const [activeGeneratingDocId, setActiveGeneratingDocId] = useState<string | null>(
-    generatingDocId || null
-  );
+  const [isPollingDoc, setIsPollingDoc] = useState<boolean>(!!generatingDocId);
+  const [polledDocStatus, setPolledDocStatus] = useState<string>("generating");
+
+  // Status dropdown & Case Type state
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [caseTypeModalVisible, setCaseTypeModalVisible] = useState(false);
+  const [caseTypeInput, setCaseTypeInput] = useState("");
+  const [savingCaseType, setSavingCaseType] = useState(false);
 
   const docType = routeDocType || "complaint";
 
-  const { fetchCaseById, selectedCase, loading: caseLoading } = useCases();
+  const { fetchCaseById, selectedCase, updateCase: updateCaseDetails, loading: caseLoading } = useCases();
   const { documents, fetchDocuments, loading: docsLoading } = useDocuments(caseId, docType);
   const { assets, fetchAssets, removeAsset, loading: assetsLoading } = useAssets(caseId, docType);
 
@@ -43,70 +97,105 @@ export function CasePageScreen({ navigation, route }: Props) {
 
   // Document Generation Status Polling
   useEffect(() => {
-    if (!activeGeneratingDocId) return;
+    if (!generatingDocId) return;
 
-    console.log(`[CasePageScreen] ==================== START STATUS POLLING ====================`);
-    console.log(`[CasePageScreen] Polling generation status for Document ID: "${activeGeneratingDocId}"...`);
+    console.log(`[CasePageScreen] Starting status polling for generating document: "${generatingDocId}"...`);
+    setIsPollingDoc(true);
+    setPolledDocStatus("generating");
 
-    let attempts = 0;
-    const maxAttempts = 30; // 30 * 2.5s = 75s
+    let pollCount = 0;
+    const maxPolls = 30; // poll for up to ~75 seconds
 
-    const interval = setInterval(async () => {
-      attempts++;
-      console.log(`[CasePageScreen] Poll #${attempts}: Checking document "${activeGeneratingDocId}"...`);
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      console.log(`[CasePageScreen] Polling status (#${pollCount}) for document "${generatingDocId}"...`);
       try {
-        const doc = await getDocument(caseId, docType, activeGeneratingDocId);
-        const hasContent = !!(doc?.content || (doc as any)?.markdown);
-        const isDone = doc?.status === "draft" || doc?.status === "final";
+        const doc = await getDocument(caseId, docType, generatingDocId);
+        console.log(`[CasePageScreen] Poll result: status="${doc.status}", hasContent=${Boolean(doc.content)}`);
 
-        console.log(`[CasePageScreen] Status check: status="${doc?.status}", hasContent=${hasContent}`);
-        if (isDone && hasContent) {
-          console.log(`[CasePageScreen] 🎉 AI Generation COMPLETE! Document "${doc.title}" is ready.`);
-          setActiveGeneratingDocId(null);
-          await fetchDocuments();
+        if (doc && (doc.status === "final" || (doc.status as any) === "completed" || Boolean(doc.content))) {
+          console.log(`[CasePageScreen] ✅ Document generation finished! Refreshing document list.`);
+          clearInterval(pollInterval);
+          setIsPollingDoc(false);
+          setPolledDocStatus("completed");
+          fetchDocuments();
+        } else if (pollCount >= maxPolls) {
+          console.warn(`[CasePageScreen] Polling reached max attempts. Stopping.`);
+          clearInterval(pollInterval);
+          setIsPollingDoc(false);
+          fetchDocuments();
         }
-      } catch (pollErr: any) {
-        console.warn(`[CasePageScreen] Poll check warning:`, pollErr.message);
-      }
-
-      if (attempts >= maxAttempts) {
-        console.warn(`[CasePageScreen] Polling reached max attempts. Stopping active polling.`);
-        setActiveGeneratingDocId(null);
-        fetchDocuments();
+      } catch (err: any) {
+        console.warn(`[CasePageScreen] Polling error on attempt #${pollCount}:`, err.message);
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          setIsPollingDoc(false);
+          fetchDocuments();
+        }
       }
     }, 2500);
 
-    return () => {
-      console.log(`[CasePageScreen] Clearing polling interval for Document ID: "${activeGeneratingDocId}"`);
-      clearInterval(interval);
-    };
-  }, [activeGeneratingDocId, caseId, docType, fetchDocuments]);
-
-  const handleGenerateDocument = () => {
-    console.log(`[CasePageScreen] User tapped Generate New Document for docType "${docType}"`);
-    navigation.navigate("DocumentGeneration", { caseId, docType });
-  };
+    return () => clearInterval(pollInterval);
+  }, [generatingDocId, caseId, docType, fetchDocuments]);
 
   const handleOpenMarkdownViewer = (doc: any) => {
-    const docId = doc._id || doc.id;
-    console.log(`[CasePageScreen] User tapped document "${doc.title}" (ID: ${docId}). Opening Markdown Viewer...`);
+    console.log(`[CasePageScreen] Opening Markdown Preview for document "${doc.title || doc._id}"`);
     navigation.navigate("MarkdownPreview", {
+      markdown: doc.content || "# No content available",
+      title: doc.title || "Generated Document",
+      subtitle: `Case: ${selectedCase?.caseNumber || caseId}`,
       caseId,
-      documentId: docId,
-      title: doc.title || "Case Document",
-      subtitle: `${(doc.docType || docType).toUpperCase()} • ${doc.status?.toUpperCase() || "READY"}`,
-      markdown: doc.content || doc.markdown || "",
+      documentId: doc._id || doc.id,
     });
   };
 
-  // Check for any complaint document to display in complaint section
-  const complaintDoc =
-    documents.find((d) => d.docType === "complaint") ||
-    (docType === "complaint" && documents.length > 0 ? documents[0] : null);
+  const handleSelectStatus = async (newStatus: string) => {
+    setStatusDropdownOpen(false);
+    console.log(`[CasePageScreen] Officer changed status to "${newStatus}" for case "${caseId}"`);
+    try {
+      setUpdatingStatus(true);
+      await updateCaseDetails(caseId, { status: newStatus as any });
+      console.log(`[CasePageScreen] ✅ Case status successfully updated to "${newStatus}" in backend.`);
+    } catch (err: any) {
+      console.error(`[CasePageScreen] ❌ Failed to update case status:`, err);
+      Alert.alert("Error", `Could not update case status: ${err?.message || "Unknown error"}`);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleSaveCaseType = async (typeToSave?: string) => {
+    const finalType = (typeToSave !== undefined ? typeToSave : caseTypeInput).trim();
+    if (!finalType) {
+      Alert.alert("Case Type Required", "Please enter or select a case category.");
+      return;
+    }
+    console.log(`[CasePageScreen] Officer updating case type to "${finalType}" for case "${caseId}"`);
+    try {
+      setSavingCaseType(true);
+      await updateCaseDetails(caseId, { caseType: finalType });
+      setCaseTypeModalVisible(false);
+      setCaseTypeInput("");
+      console.log(`[CasePageScreen] ✅ Case type successfully updated to "${finalType}" in backend.`);
+    } catch (err: any) {
+      console.error(`[CasePageScreen] ❌ Failed to update case type:`, err);
+      Alert.alert("Error", `Could not update case type: ${err?.message || "Unknown error"}`);
+    } finally {
+      setSavingCaseType(false);
+    }
+  };
+
+  const complaintDoc = documents.find(
+    (d) => d.docType === "complaint" || d.title?.toLowerCase().includes("complaint")
+  );
+
+  const currentStatus = (selectedCase?.status || "open").toLowerCase();
+  const currentStatusChoice =
+    STATUS_CHOICES.find((s) => s.key === currentStatus) || STATUS_CHOICES[0];
 
   if (caseLoading && !selectedCase) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+      <View style={styles.centerLoading}>
         <ActivityIndicator size="large" color="#0F294A" />
       </View>
     );
@@ -127,8 +216,15 @@ export function CasePageScreen({ navigation, route }: Props) {
             <Text style={styles.caseIdText}>{selectedCase?.caseNumber || caseId}</Text>
           </View>
           <View style={styles.iconActions}>
-            <Pressable style={styles.iconBtn}>
-              <Feather name="edit-3" size={15} color="#475569" />
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => {
+                setCaseTypeInput(selectedCase?.caseType || selectedCase?.type || "");
+                setCaseTypeModalVisible(true);
+              }}
+              hitSlop={8}
+            >
+              <Feather name="tag" size={15} color="#475569" />
             </Pressable>
             <Pressable
               style={styles.iconBtn}
@@ -138,6 +234,7 @@ export function CasePageScreen({ navigation, route }: Props) {
                 fetchAssets();
                 fetchDocuments();
               }}
+              hitSlop={8}
             >
               <Feather name="rotate-cw" size={15} color="#475569" />
             </Pressable>
@@ -148,11 +245,77 @@ export function CasePageScreen({ navigation, route }: Props) {
           {selectedCase?.name || selectedCase?.title || "Unknown Case"}
         </Text>
 
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusBadgeText}>
-            {selectedCase?.status?.toUpperCase() || "OPEN"}
-          </Text>
+        {/* STATUS DROPDOWN & CASE TYPE ROW (JUST BELOW CASE TITLE) */}
+        <View style={styles.statusAndTypeRow}>
+          {/* Status Dropdown Trigger */}
+          <Pressable
+            style={[
+              styles.statusDropdownTrigger,
+              { backgroundColor: currentStatusChoice.bg, borderColor: currentStatusChoice.border },
+            ]}
+            onPress={() => setStatusDropdownOpen((prev) => !prev)}
+            hitSlop={6}
+          >
+            <View style={[styles.statusDot, { backgroundColor: currentStatusChoice.dot }]} />
+            <Text style={[styles.statusDropdownText, { color: currentStatusChoice.text }]}>
+              {currentStatusChoice.label}
+            </Text>
+            {updatingStatus ? (
+              <ActivityIndicator size="small" color={currentStatusChoice.text} style={{ marginLeft: 4 }} />
+            ) : (
+              <Feather
+                name={statusDropdownOpen ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={currentStatusChoice.text}
+              />
+            )}
+          </Pressable>
+
+          {/* Case Type Tag / Button */}
+          <Pressable
+            style={styles.caseTypeTagBtn}
+            onPress={() => {
+              setCaseTypeInput(selectedCase?.caseType || selectedCase?.type || "");
+              setCaseTypeModalVisible(true);
+            }}
+            hitSlop={6}
+          >
+            <Feather name="folder" size={12} color="#0F294A" />
+            <Text style={styles.caseTypeTagText} numberOfLines={1}>
+              {selectedCase?.caseType || selectedCase?.type || "+ Add Case Type"}
+            </Text>
+            <Feather name="edit-2" size={11} color="#64748B" />
+          </Pressable>
         </View>
+
+        {/* Inline Status Dropdown Menu (when toggled open) */}
+        {statusDropdownOpen && (
+          <View style={styles.statusDropdownMenu}>
+            <Text style={styles.dropdownHeaderTitle}>UPDATE CASE STATUS</Text>
+            {STATUS_CHOICES.map((choice) => {
+              const isSelected = choice.key === currentStatus.toLowerCase();
+              return (
+                <Pressable
+                  key={choice.key}
+                  style={[
+                    styles.statusDropdownItem,
+                    isSelected && { backgroundColor: choice.bg },
+                  ]}
+                  onPress={() => handleSelectStatus(choice.key)}
+                >
+                  <View style={[styles.statusDot, { backgroundColor: choice.dot }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.statusChoiceLabel, { color: choice.text }]}>
+                      {choice.label}
+                    </Text>
+                    <Text style={styles.statusChoiceSub}>{choice.description}</Text>
+                  </View>
+                  {isSelected && <Feather name="check" size={16} color={choice.text} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* Complaint Details Card */}
@@ -200,7 +363,7 @@ export function CasePageScreen({ navigation, route }: Props) {
           onPress={() => setActiveTab("audio")}
         >
           <Feather
-            name="mic"
+            name="music"
             size={15}
             color={activeTab === "audio" ? "#0F294A" : "#64748B"}
           />
@@ -219,7 +382,7 @@ export function CasePageScreen({ navigation, route }: Props) {
             color={activeTab === "info" ? "#0F294A" : "#64748B"}
           />
           <Text style={[styles.tabText, activeTab === "info" && styles.activeTabText]}>
-            Information
+            Case Info
           </Text>
         </Pressable>
       </View>
@@ -227,8 +390,8 @@ export function CasePageScreen({ navigation, route }: Props) {
       {/* Tab Content: Documents */}
       {activeTab === "documents" && (
         <View style={styles.docsSection}>
-          {/* Active AI Generation Processing Card */}
-          {activeGeneratingDocId && (
+          {/* Active AI Document Generation Progress Card */}
+          {isPollingDoc && (
             <View style={styles.processingCard}>
               <View style={styles.processingSpinnerContainer}>
                 <ActivityIndicator size="small" color="#2563EB" />
@@ -238,17 +401,18 @@ export function CasePageScreen({ navigation, route }: Props) {
                 <Text style={styles.processingSubtext}>
                   Analyzing audio context and structuring Markdown...
                 </Text>
-                <View style={styles.docIdBadge}>
-                  <Text style={styles.docIdBadgeText}>Doc ID: {activeGeneratingDocId}</Text>
-                </View>
+                {generatingDocId && (
+                  <View style={styles.docIdBadge}>
+                    <Text style={styles.docIdBadgeText}>Doc ID: {generatingDocId}</Text>
+                  </View>
+                )}
               </View>
             </View>
           )}
 
-          {/* Document List */}
           {documents.map((doc) => (
             <Pressable
-              key={doc._id || (doc as any).id}
+              key={doc._id || doc.id}
               style={styles.docCard}
               onPress={() => handleOpenMarkdownViewer(doc)}
             >
@@ -256,39 +420,53 @@ export function CasePageScreen({ navigation, route }: Props) {
                 <Feather name="file-text" size={20} color="#0F294A" />
               </View>
               <View style={styles.docInfo}>
-                <Text style={styles.docTitle}>{doc.title}</Text>
+                <Text style={styles.docTitle} numberOfLines={1}>
+                  {doc.title || "Untitled Document"}
+                </Text>
                 <Text style={styles.docMeta}>
-                  Status: {doc.status?.toUpperCase() || "READY"} • {doc.docType || "Document"}
+                  {doc.docType?.toUpperCase() || "DOC"} • {doc.status || "Draft"} •{" "}
+                  {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "Recent"}
                 </Text>
               </View>
               <View style={styles.viewDocBadge}>
                 <Text style={styles.viewDocBadgeText}>View</Text>
-                <Feather name="chevron-right" size={14} color="#2563EB" />
+                <Feather name="chevron-right" size={15} color="#2563EB" />
               </View>
             </Pressable>
           ))}
 
-          {documents.length === 0 && !docsLoading && !activeGeneratingDocId && (
+          {documents.length === 0 && !docsLoading && !isPollingDoc && (
             <View style={styles.emptyTabContent}>
-              <Feather name="file" size={32} color="#94A3B8" />
+              <Feather name="folder" size={32} color="#94A3B8" />
               <Text style={styles.emptyTabText}>No documents generated yet.</Text>
             </View>
           )}
 
-          <Pressable style={styles.generateButton} onPress={handleGenerateDocument}>
-            <Feather name="plus" size={16} color="#0F294A" />
+          {/* Generate Document Shortcut Button */}
+          <Pressable
+            style={styles.generateButton}
+            onPress={() => {
+              navigation.navigate("DocumentGeneration", {
+                caseId,
+                docType,
+              });
+            }}
+          >
+            <Feather name="plus-circle" size={18} color="#0F294A" />
             <Text style={styles.generateButtonText}>GENERATE NEW DOCUMENT</Text>
           </Pressable>
         </View>
       )}
 
-      {/* Tab Content: Audio (with playback & loaders) */}
+      {/* Tab Content: Audio (with playback, loaders & download) */}
       {activeTab === "audio" && (
         <View style={styles.docsSection}>
-          {assets.map((asset) => (
+          {assets.map((asset, index) => (
             <AudioAssetCard
               key={asset._id || asset.id}
               asset={asset}
+              index={index}
+              totalCount={assets.length}
               onRemove={(id) => removeAsset(id)}
             />
           ))}
@@ -302,22 +480,132 @@ export function CasePageScreen({ navigation, route }: Props) {
         </View>
       )}
 
-      {/* Tab Content: Info */}
+      {/* Tab Content: Case Info */}
       {activeTab === "info" && (
         <View style={styles.infoCard}>
           <Text style={styles.infoRowTitle}>Police Station</Text>
-          <Text style={styles.infoRowValue}>{selectedCase?.policeStationId || "Central Station"}</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.policeStationId || "Not specified"}
+          </Text>
 
-          <Text style={styles.infoRowTitle}>FIR Number</Text>
-          <Text style={styles.infoRowValue}>{selectedCase?.firNumber || "N/A"}</Text>
+          <Text style={styles.infoRowTitle}>FIR / Case Number</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.firNumber || selectedCase?.caseNumber || "Pending"}
+          </Text>
 
-          <Text style={styles.infoRowTitle}>Location of Incident</Text>
-          <Text style={styles.infoRowValue}>{selectedCase?.location || "Not specified"}</Text>
+          <Text style={styles.infoRowTitle}>Case Type / Category</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.caseType || selectedCase?.type || "Not specified"}
+          </Text>
+
+          <Text style={styles.infoRowTitle}>Incident Location</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.location || "Not specified"}
+          </Text>
 
           <Text style={styles.infoRowTitle}>Date of Incident</Text>
-          <Text style={styles.infoRowValue}>{selectedCase?.date || "N/A"}</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.date
+              ? new Date(selectedCase.date).toLocaleDateString()
+              : "Not recorded"}
+          </Text>
+
+          <Text style={styles.infoRowTitle}>Officer in Charge</Text>
+          <Text style={styles.infoRowValue}>
+            {selectedCase?.assignedOfficer || selectedCase?.officerId || "Assigned Officer"}
+          </Text>
         </View>
       )}
+
+      {/* Modal for Setting / Updating Case Type */}
+      <Modal
+        visible={caseTypeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCaseTypeModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCaseTypeModalVisible(false)}
+        >
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Feather name="tag" size={18} color="#0F294A" />
+                <Text style={styles.modalTitle}>Set Case Type</Text>
+              </View>
+              <Pressable
+                onPress={() => setCaseTypeModalVisible(false)}
+                hitSlop={8}
+              >
+                <Feather name="x" size={20} color="#64748B" />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Select a standard police category or enter a custom type:
+            </Text>
+
+            {/* Preset chips */}
+            <View style={styles.presetChipsWrapper}>
+              {PRESET_CASE_TYPES.map((preset) => {
+                const isSelected =
+                  caseTypeInput.toLowerCase() === preset.toLowerCase();
+                return (
+                  <Pressable
+                    key={preset}
+                    style={[
+                      styles.presetChip,
+                      isSelected && styles.presetChipSelected,
+                    ]}
+                    onPress={() => setCaseTypeInput(preset)}
+                  >
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        isSelected && styles.presetChipTextSelected,
+                      ]}
+                    >
+                      {preset}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Custom Input */}
+            <TextInput
+              style={styles.caseTypeTextInput}
+              placeholder="Or type custom category..."
+              placeholderTextColor="#94A3B8"
+              value={caseTypeInput}
+              onChangeText={setCaseTypeInput}
+              autoCapitalize="words"
+            />
+
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setCaseTypeModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.saveTypeBtn}
+                onPress={() => handleSaveCaseType()}
+                disabled={savingCaseType}
+              >
+                {savingCaseType ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveTypeBtnText}>Save Case Type</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -328,8 +616,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   content: {
-    padding: 20,
+    paddingHorizontal: 16,
     gap: 16,
+  },
+  centerLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
   },
   caseHeaderCard: {
     backgroundColor: "#FFFFFF",
@@ -360,9 +654,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
@@ -375,17 +669,86 @@ const styles = StyleSheet.create({
     color: "#0F294A",
     letterSpacing: -0.3,
   },
-  statusBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FEE2E2",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  statusAndTypeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 2,
   },
-  statusBadgeText: {
-    color: "#DC2626",
+  statusDropdownTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDropdownText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  caseTypeTagBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  caseTypeTagText: {
     fontSize: 12,
     fontWeight: "700",
+    color: "#0F294A",
+    maxWidth: 160,
+  },
+  statusDropdownMenu: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 8,
+    marginTop: 6,
+    gap: 6,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  dropdownHeaderTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#94A3B8",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    letterSpacing: 0.5,
+  },
+  statusDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 10,
+  },
+  statusChoiceLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  statusChoiceSub: {
+    fontSize: 11,
+    color: "#64748B",
   },
   detailsCard: {
     backgroundColor: "#FFFFFF",
@@ -597,5 +960,106 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#0F294A",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+    gap: 12,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F294A",
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  presetChipsWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginVertical: 4,
+  },
+  presetChip: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  presetChipSelected: {
+    backgroundColor: "#0F294A",
+    borderColor: "#0F294A",
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  presetChipTextSelected: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  caseTypeTextInput: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
+    marginTop: 4,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  saveTypeBtn: {
+    backgroundColor: "#0F294A",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 110,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveTypeBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

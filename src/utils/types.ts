@@ -39,7 +39,7 @@ export type LoginPayload = {
 // 2. Case Models (Matching /api/cases)
 // ----------------------------------------------------------------------------
 
-export type CaseStatus = "open" | "closed" | "deleted" | "OPEN" | "CLOSED" | "DELETED";
+export type CaseStatus = "open" | "closed" | "processing" | "deleted" | "OPEN" | "CLOSED" | "PROCESSING" | "DELETED";
 
 /**
  * Backend Case response shape as returned by MongoDB / Express API
@@ -53,7 +53,8 @@ export type BackendCase = {
   location?: string | null;
   description?: string | null;
   dateOfIncident?: string | null;
-  status: "open" | "closed" | "deleted";
+  status: "open" | "closed" | "processing" | "deleted";
+  caseType?: string | null;
   createdAt: string;
   updatedAt: string;
   __v?: number;
@@ -70,6 +71,7 @@ export type Case = {
   title?: string;
   description?: string;
   type?: string;
+  caseType?: string;
   date: string;
   status: CaseStatus;
   location?: string;
@@ -103,6 +105,7 @@ export type CreateCasePayload = {
   name?: string; // Frontend alias
   description?: string;
   type?: string;
+  caseType?: string;
   date?: string;
   location?: string;
   firNumber?: string;
@@ -110,11 +113,13 @@ export type CreateCasePayload = {
 
 export type UpdateCasePayload = Partial<CreateCasePayload> & {
   status?: CaseStatus;
+  caseType?: string;
   firNumber?: string;
 };
 
 export type CaseFilterParams = {
   status?: CaseStatus | "ALL";
+  caseType?: string;
   search?: string;
   page?: number;
   limit?: number;

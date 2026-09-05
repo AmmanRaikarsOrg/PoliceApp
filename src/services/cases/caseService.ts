@@ -28,6 +28,8 @@ function normalizeCase(raw: BackendCase): Case {
     description: raw.description || undefined,
     date: raw.dateOfIncident || raw.createdAt,
     status: raw.status,
+    caseType: raw.caseType || undefined,
+    type: raw.caseType || undefined,
     location: raw.location || undefined,
     firNumber: raw.firNumber,
     policeStationId: raw.policeStationId,
@@ -45,6 +47,9 @@ export async function getCases(filters?: CaseFilterParams): Promise<Case[]> {
   const queryParams: Record<string, string | number | undefined> = {};
   if (filters?.status && filters.status !== "ALL") {
     queryParams.status = filters.status.toLowerCase();
+  }
+  if (filters?.caseType && filters.caseType !== "ALL") {
+    queryParams.caseType = filters.caseType;
   }
   if (filters?.search) {
     queryParams.search = filters.search;
@@ -79,7 +84,7 @@ export async function getCaseById(caseId: string): Promise<Case> {
 
 /**
  * Create a new case.
- * Backend expects: { title: string, description?: string, location?: string, firNumber?: string, dateOfIncident?: string }
+ * Backend expects: { title: string, description?: string, location?: string, firNumber?: string, dateOfIncident?: string, caseType?: string }
  */
 export async function createCase(payload: CreateCasePayload): Promise<Case> {
   const body: Record<string, any> = {
@@ -89,6 +94,8 @@ export async function createCase(payload: CreateCasePayload): Promise<Case> {
   if (payload.location) body.location = payload.location;
   if (payload.firNumber) body.firNumber = payload.firNumber;
   if (payload.date) body.dateOfIncident = payload.date;
+  if (payload.caseType) body.caseType = payload.caseType;
+  if (payload.type && !payload.caseType) body.caseType = payload.type;
 
   const raw = await apiRequest<BackendCase>(ENDPOINTS.cases.create, {
     method: "POST",
@@ -108,6 +115,8 @@ export async function updateCase(caseId: string, payload: UpdateCasePayload): Pr
   if (payload.location !== undefined) body.location = payload.location;
   if (payload.firNumber !== undefined) body.firNumber = payload.firNumber;
   if (payload.status !== undefined) body.status = String(payload.status).toLowerCase();
+  if (payload.caseType !== undefined) body.caseType = payload.caseType;
+  if (payload.type !== undefined && payload.caseType === undefined) body.caseType = payload.type;
   if (payload.date !== undefined) body.dateOfIncident = payload.date;
 
   const raw = await apiRequest<BackendCase>(ENDPOINTS.cases.update(caseId), {

@@ -141,6 +141,6 @@ export function useCases(initialFilters?: CaseFilterParams) {
     createNewCase,
     updateCase: updateExistingCase,
     deleteCase: removeCase,
-    refreshCases: () => fetchCases(initialFilters),
+    refreshCases: (filters?: CaseFilterParams) => fetchCases(filters || initialFilters),
   };
 }
