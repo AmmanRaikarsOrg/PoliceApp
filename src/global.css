@@ -1,4 +1,5 @@
 :root {
+  /* ── Typography ── */
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
     Segoe UI Symbol, Noto Color Emoji;
@@ -6,4 +7,74 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+
+  /* ── Brand & Identity ── */
+  --color-primary: #0F294A;
+  --color-primary-dark: #0A1B30;
+  --color-primary-light: #1E3A8A;
+  --color-primary-subtle: #EFF6FF;
+
+  --color-accent: #2563EB;
+  --color-accent-light: #DBEAFE;
+  --color-accent-hover: #1D4ED8;
+
+  /* ── Case Status (Only Open & Closed) ── */
+  --color-status-open-main: #DC2626;
+  --color-status-open-text: #991B1B;
+  --color-status-open-bg: #FEF2F2;
+  --color-status-open-border: #FECACA;
+  --color-status-open-dot: #DC2626;
+
+  --color-status-closed-main: #475569;
+  --color-status-closed-text: #475569;
+  --color-status-closed-bg: #F1F5F9;
+  --color-status-closed-border: #E2E8F0;
+  --color-status-closed-dot: #475569;
+
+  /* ── Semantic & Feedback ── */
+  --color-success-main: #16A34A;
+  --color-success-text: #15803D;
+  --color-success-bg: #F0FDF4;
+  --color-success-border: #BBF7D0;
+
+  --color-warning-main: #D97706;
+  --color-warning-text: #B45309;
+  --color-warning-bg: #FFFBEB;
+  --color-warning-border: #FDE68A;
+
+  --color-error-main: #DC2626;
+  --color-error-text: #B91C1C;
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+
+  --color-info-main: #2563EB;
+  --color-info-text: #1D4ED8;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: #BFDBFE;
+
+  /* ── Backgrounds & Surfaces ── */
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-muted: #F1F5F9;
+  --color-surface-subtle: #F8FAFC;
+
+  /* ── Borders ── */
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+  --color-border-medium: #CBD5E1;
+  --color-border-dark: #94A3B8;
+
+  /* ── Text ── */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748B;
+  --color-text-placeholder: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+
+  /* ── Base ── */
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+  --color-overlay: rgba(15, 23, 42, 0.6);
+  --color-shadow: #0F172A;
 }

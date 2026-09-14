@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "../hooks/useAuth";
 
 export type LoginScreenProps = {
   onLoginSuccess?: () => void;
@@ -38,14 +39,23 @@ export function LoginScreen({
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const auth = useAuth();
 
-  const handleLogin = () => {
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    } else if (navigation && typeof navigation.replace === "function") {
-      navigation.replace("Home");
-    } else {
-      Alert.alert("Success", "Logged in successfully.");
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      await auth.login({ email: identifier, password });
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      } else if (navigation && typeof navigation.replace === "function") {
+        navigation.replace("Home");
+      }
+    } catch (error: any) {
+      Alert.alert("Login Failed", error.message || "Invalid credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -167,7 +177,7 @@ export function LoginScreen({
                 color="#FFFFFF"
                 style={styles.loginIcon}
               />
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>{loading ? "Loading..." : "Login"}</Text>
             </Pressable>
           </View>
 

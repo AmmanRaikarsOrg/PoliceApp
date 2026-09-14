@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { colors } from "../../theme";
 
 type Props = {
   id?: string;
@@ -8,27 +9,38 @@ type Props = {
   date?: string;
   updated?: string;
   status?: string;
+  caseType?: string;
   onPress?: () => void;
 };
 
 export function CaseCard({
-  id = "rgba(255, 255, 255, 0.27)-0812",
+  id = "CR-0812",
   name = "Downtown Traffic Incident",
   date = "Oct 24, 2024",
   updated = "Updated 2h ago",
   status = "Open",
+  caseType,
   onPress,
 }: Props) {
+  const normalizedStatus = (status || "open").toLowerCase();
+
   const getStatusStyles = () => {
-    switch (status) {
-      case "Open":
-        return { bg: "#FEE2E2", text: "#991B1B" };
-      case "In Progress":
-        return { bg: "#DBEAFE", text: "#1E40AF" };
-      case "Closed":
-        return { bg: "#E2E8F0", text: "#475569" };
+    switch (normalizedStatus) {
+      case "open":
+        return {
+          bg: colors.status.open.bg,
+          border: colors.status.open.border,
+          text: colors.status.open.text,
+          label: "Open",
+        };
+      case "closed":
       default:
-        return { bg: "#F1F5F9", text: "#64748B" };
+        return {
+          bg: colors.status.closed.bg,
+          border: colors.status.closed.border,
+          text: colors.status.closed.text,
+          label: "Closed",
+        };
     }
   };
 
@@ -38,10 +50,25 @@ export function CaseCard({
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.header}>
         <Text style={styles.id}>{id}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-          <Text style={[styles.statusText, { color: statusStyle.text }]}>
-            {status}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {caseType && (
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeText}>{caseType}</Text>
+            </View>
+          )}
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: statusStyle.bg,
+                borderColor: statusStyle.border,
+              },
+            ]}
+          >
+            <Text style={[styles.statusText, { color: statusStyle.text }]}>
+              {statusStyle.label}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -49,11 +76,11 @@ export function CaseCard({
 
       <View style={styles.footer}>
         <View style={styles.metaItem}>
-          <Feather name="calendar" size={14} color="#64748B" />
+          <Feather name="calendar" size={14} color={colors.textMuted} />
           <Text style={styles.metaText}>{date}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Feather name="clock" size={14} color="#64748B" />
+          <Feather name="clock" size={14} color={colors.textMuted} />
           <Text style={styles.metaText}>{updated}</Text>
         </View>
       </View>
@@ -63,10 +90,10 @@ export function CaseCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     padding: 16,
   },
   header: {
@@ -77,28 +104,42 @@ const styles = StyleSheet.create({
   },
   id: {
     fontSize: 13,
-    color: "#64748B",
-    fontWeight: "600",
+    color: colors.textMuted,
+    fontWeight: "700",
+  },
+  typeBadge: {
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  typeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
+    borderWidth: 1,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   name: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0F172A",
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    justifyContent: "space-between",
   },
   metaItem: {
     flexDirection: "row",
@@ -106,7 +147,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    fontSize: 13,
-    color: "#475569",
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });

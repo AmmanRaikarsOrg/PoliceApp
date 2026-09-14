@@ -1,14 +1,16 @@
-export async function markdownToWord(
-  markdown: string
-): Promise<string> {
-  /*
-   * Convert Markdown into a DOCX file on the frontend.
-   *
-   * The returned value should eventually be the
-   * local file URI of the generated .docx file.
-   */
+import {
+  parseMarkdown,
+} from "./markdown/parser";
 
-  throw new Error(
-    "Markdown to Word conversion not implemented yet."
-  );
+import {
+  generateDocx,
+} from "./docx/generator";
+
+export async function markdownToDocx(
+  markdown: string
+): Promise<Uint8Array> {
+  const parsed =
+    parseMarkdown(markdown);
+
+  return generateDocx(parsed);
 }

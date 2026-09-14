@@ -1,21 +1,51 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { colors } from "../../theme";
 
-export function CaseStatusFilter() {
+type StatusOption = {
+  key: string;
+  label: string;
+  activeBg: string;
+};
+
+const STATUS_OPTIONS: StatusOption[] = [
+  { key: "ALL", label: "All", activeBg: colors.primary },
+  { key: "OPEN", label: "Open", activeBg: colors.status.open.main },
+  { key: "CLOSED", label: "Closed", activeBg: colors.status.closed.main },
+];
+
+type Props = {
+  selectedStatus: string;
+  onSelectStatus: (status: string) => void;
+};
+
+export function CaseStatusFilter({ selectedStatus = "ALL", onSelectStatus }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.activePill}>
-        <Text style={styles.activeText}>All</Text>
-      </View>
-      <View style={styles.pill}>
-        <Text style={styles.pillText}>Open</Text>
-      </View>
-      <View style={styles.pill}>
-        <Text style={styles.pillText}>In Progress</Text>
-      </View>
-      <View style={styles.pill}>
-        <Text style={styles.pillText}>Closed</Text>
-      </View>
+      {STATUS_OPTIONS.map((opt) => {
+        const isActive =
+          selectedStatus.toUpperCase() === opt.key.toUpperCase();
+        return (
+          <Pressable
+            key={opt.key}
+            style={[
+              styles.pill,
+              isActive && [styles.activePill, { backgroundColor: opt.activeBg }],
+            ]}
+            onPress={() => onSelectStatus(opt.key)}
+            hitSlop={6}
+          >
+            <Text
+              style={[
+                styles.pillText,
+                isActive && styles.activeText,
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -25,29 +55,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  activePill: {
-    backgroundColor: "#1E293B",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  activeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
+    flexWrap: "wrap",
   },
   pill: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 20,
   },
+  activePill: {
+    borderColor: colors.transparent,
+  },
   pillText: {
-    color: "#475569",
+    color: colors.textMuted,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  activeText: {
+    color: colors.textInverse,
   },
 });

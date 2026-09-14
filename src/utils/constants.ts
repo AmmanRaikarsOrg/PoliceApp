@@ -5,5 +5,5 @@ export const CASE_STATUSES = [
 ] as const;
 
 export const FONT_FAMILY = {
-  NUDI_E05: "NudiE05",
+  NUDI_E05: "Nudi 05 e",
 };
